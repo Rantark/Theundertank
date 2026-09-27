@@ -404,7 +404,7 @@ function generateTiles(scene) {
     p.rect(0, 15, 16, 1, 0x1c1815).rect(15, 0, 1, 16, 0x1c1815);
     p.px(2, 2, 0x4a4038).px(13, 2, 0x4a4038).px(2, 13, 0x4a4038).px(13, 13, 0x4a4038);
     if (v === 1) p.line(4, 9, 9, 7, 0x221e1a).px(10, 7, 0x221e1a);
-    if (v === 2) for (let i = 4; i < 12; i += 2) p.rect(4, i, 8, 1, 0x1a1613);
+    if (v === 2) p.line(3, 12, 12, 12, 0x221e1a).px(12, 11, 0x221e1a).px(4, 4, 0x3a332d);
     if (v === 3) p.disc(9, 9, 2.5, 0x2a3a33, 0.8);
     p.toTexture(scene, `floor_${v}`);
   }
