@@ -26,6 +26,7 @@ export class TownScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
     this.solids = [];
     this.interactables = [];
+    this.leaving = false;
 
     // Ground
     const rt = this.add.renderTexture(0, 0, W, H).setOrigin(0).setDepth(0);
