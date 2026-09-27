@@ -1,10 +1,17 @@
 # Builds the standalone desktop executables on native runners.
 #  - Push a tag like v0.1.0 to build all platforms and attach them to a GitHub Release.
-#  - Or run it manually from the Actions tab ("Run workflow") and download the artifacts.
+#  - Or run it manually from the Actions tab ("Run workflow"). Leave "release_tag" empty to
+#    just build downloadable artifacts, or enter e.g. v0.1.0 to also publish a Release
+#    (GitHub creates the tag on the commit that was built).
 name: Desktop builds
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish a GitHub Release with this tag (e.g. v0.1.0). Leave empty to only build.'
+        required: false
+        default: ''
   push:
     tags: ['v*']
     branches: ['claude/roguelike-twin-stick-shooter-2hbnhx']
@@ -45,7 +52,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -55,4 +62,14 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          name: The Undercrank ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           files: dist/*
+          body: |
+            Standalone builds of The Undercrank. No install needed:
+            - **Windows**: download the `.exe` and double-click it (click "More info, then Run anyway" on the first launch).
+            - **macOS**: open the `.dmg` for your Mac (arm64 = Apple Silicon, x64 = Intel), drag the app to Applications, then right-click and choose Open the first time.
+            - **Linux**: download the `.AppImage`, make it executable, and run it.
+
+            Every copy can host online co-op: the Online Co-op menu shows the address friends should type in.
