@@ -547,9 +547,9 @@ function bossMove(g, b, dt, sm) {
   switch (b.def.move) {
     case 'chase': {
       if (d > 20) {
-        const a = angleTo(b.x, b.y, t.x, t.y);
-        moveEnemy(g, b, Math.cos(a) * spd, Math.sin(a) * spd, dt);
-        b.facing = a;
+        const v = g.nav.steer(b, t) || [Math.cos(angleTo(b.x, b.y, t.x, t.y)), Math.sin(angleTo(b.x, b.y, t.x, t.y))];
+        moveEnemy(g, b, v[0] * spd, v[1] * spd, dt);
+        b.facing = Math.atan2(v[1], v[0]);
       }
       break;
     }
@@ -564,8 +564,9 @@ function bossMove(g, b, dt, sm) {
     case 'prowl': {
       const a = angleTo(b.x, b.y, t.x, t.y);
       const side = a + Math.PI / 2;
-      const mx = d > 75 ? Math.cos(a) : Math.cos(side) * 0.8 - Math.cos(a) * 0.2;
-      const my = d > 75 ? Math.sin(a) : Math.sin(side) * 0.8 - Math.sin(a) * 0.2;
+      const v = d > 75 ? g.nav.steer(b, t) || [Math.cos(a), Math.sin(a)] : null;
+      const mx = v ? v[0] : Math.cos(side) * 0.8 - Math.cos(a) * 0.2;
+      const my = v ? v[1] : Math.sin(side) * 0.8 - Math.sin(a) * 0.2;
       moveEnemy(g, b, mx * spd, my * spd, dt);
       b.facing = a;
       break;

@@ -16,6 +16,7 @@ import { syncAllies, updateAllies } from './allies.js';
 import { runAction } from './actions.js';
 import { createEnemy, updateEnemies, randomFloorPoint } from './enemies.js';
 import { createBoss, updateBoss } from './bosses.js';
+import { Nav } from './nav.js';
 import { ENEMIES } from '../data/enemies.js';
 import { ITEM_MAP, ITEMS, CONSUMABLE_MAP } from '../data/items.js';
 import { CHARACTER_MAP } from '../data/characters.js';
@@ -69,6 +70,7 @@ export class Game {
     this.waveDelay = 0;
     this.gearStormT = 3;
     this.summary = null;
+    this.nav = new Nav(this);
 
     for (const po of o.players) {
       const p = createPlayer(this, po);
@@ -790,6 +792,7 @@ export class Game {
     if (this.room !== roomBefore) return;
 
     updateAllies(this, dt);
+    this.nav.update(dt);
     updateEnemies(this, dt);
     updateProjectiles(this, dt);
     updateZones(this, dt);

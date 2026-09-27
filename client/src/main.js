@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCREEN_W, SCREEN_H } from './state.js';
+import { SCREEN_W, SCREEN_H, ZOOM } from './state.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { TownScene } from './scenes/TownScene.js';
@@ -13,8 +13,8 @@ import { OnlineScene } from './scenes/OnlineScene.js';
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: SCREEN_W,
-  height: SCREEN_H,
+  width: SCREEN_W * ZOOM,
+  height: SCREEN_H * ZOOM,
   backgroundColor: '#0d0b0a',
   pixelArt: true,
   roundPixels: true,

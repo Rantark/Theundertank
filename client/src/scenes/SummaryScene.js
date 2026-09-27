@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { App } from '../state.js';
+import { App, setupCamera, ART } from '../state.js';
 import { text, panel, COLORS, rarityColor } from '../ui/text.js';
 import { ITEM_MAP, SYNERGY_MAP, CHARACTER_MAP, PLAYER_COLORS } from '@undercrank/shared';
 
@@ -16,6 +16,7 @@ export class SummaryScene extends Phaser.Scene {
   }
 
   create() {
+    setupCamera(this);
     App.audio.setMood('title');
     const s = this.summary;
     const earned = App.save.recordRun(s, this.localIds);
@@ -42,7 +43,7 @@ export class SummaryScene extends Phaser.Scene {
       rows.forEach((r, j) => text(this, x, 68 + j * 10, r, { color: COLORS.text }));
       p.items.slice(0, 24).forEach((id, j) => {
         const cols = Math.max(3, Math.floor((w - 8) / 15));
-        this.add.image(x + 7 + (j % cols) * 15, 128 + Math.floor(j / cols) * 15, `item_${id}`).setTint(ITEM_MAP[id] ? 0xffffff : 0x888888);
+        this.add.image(x + 7 + (j % cols) * 15, 128 + Math.floor(j / cols) * 15, `item_${id}`).setScale(ART);
       });
       let yy = 128 + Math.ceil(Math.min(24, p.items.length) / Math.max(3, Math.floor((w - 8) / 15))) * 15 + 4;
       for (const sid of p.synergies || []) {

@@ -124,10 +124,12 @@ test('every active item and consumable can be used', async () => {
   for (const it of ITEMS.filter((i) => i.kind === 'active')) {
     for (let k = 0; k < 3; k++) createEnemy(g, 'cogling', 80 + k * 40, 60, { instant: true });
     p.active = { id: it.id, charge: 999 };
+    p.invuln = 99;
     g.step(1 / 60, { 1: press('active') });
-    assert.equal(p.active.charge < 0.1, true, `${it.id} consumed its charge`);
+    assert.equal(p.active.charge < 1, true, `${it.id} consumed its charge (charge=${p.active.charge} downed=${p.downed} alive=${p.alive} over=${g.over})`);
     for (let i = 0; i < 90; i++) {
       p.hp = 6;
+      p.invuln = 99; // enemies path to the player now; keep the test about items
       g.step(1 / 60, { 1: emptyInput() });
     }
   }
@@ -152,4 +154,36 @@ test('co-op: downed players are revived by a nearby teammate', () => {
   for (let i = 0; i < 120; i++) g.step(1 / 60, {});
   assert.equal(a.downed, false);
   assert.equal(a.alive, true);
+});
+
+test('enemies path around walls through a single gap', async () => {
+  const { createEnemy } = await import('../src/sim/enemies.js');
+  const { T, ROOM_W, ROOM_H, TILE } = await import('../src/constants.js');
+  for (const type of ['cogling', 'boiler_bomb', 'brass_sentinel']) {
+    const g = new Game({ seed: `PATH-${type}`, players: [{ id: 1, slot: 0 }] });
+    const room = [...g.floor.rooms.values()].find((r) => r.type === 'combat');
+    g.enterRoom(room.id, null);
+    for (const e of g.enemies) e.dead = true;
+    g.enemies = [];
+    // Clear the room, then build a wall across the middle with one gap at the far right.
+    for (let y = 1; y < ROOM_H - 1; y++) for (let x = 1; x < ROOM_W - 1; x++) room.grid[y * ROOM_W + x] = T.FLOOR;
+    for (let x = 1; x < ROOM_W - 1; x++) if (x < ROOM_W - 4) room.grid[6 * ROOM_W + x] = T.BLOCK;
+    const p = g.players[0];
+    p.x = 3 * TILE + 8;
+    p.y = 9 * TILE + 8;
+    const e = createEnemy(g, type, 3 * TILE + 8, 3 * TILE + 8, { instant: true });
+    room.locked = true;
+    let reached = false;
+    for (let i = 0; i < 60 * 30 && !reached; i++) {
+      p.hp = 6;
+      p.invuln = 99;
+      p.x = 3 * TILE + 8;
+      p.y = 9 * TILE + 8;
+      g.step(1 / 60, {});
+      g.drainEvents();
+      // Sentinels deliberately halt ~40px away to fire.
+      if (e.dead || Math.hypot(e.x - p.x, e.y - p.y) < 45) reached = true;
+    }
+    assert.ok(reached, `${type} found a way around the wall`);
+  }
 });

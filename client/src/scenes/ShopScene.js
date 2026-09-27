@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { App } from '../state.js';
+import { App, setupCamera, ART } from '../state.js';
 import { text, setText, panel, COLORS } from '../ui/text.js';
-import { UPGRADES, SHOPS, CHARACTERS, PLAYER_COLORS } from '@undercrank/shared';
+import { UPGRADES, SHOPS, CHARACTERS, PLAYER_COLORS, upgradePreview, characterStats } from '@undercrank/shared';
 
 // Permanent-upgrade shop overlay (launched from the town).
 export class ShopScene extends Phaser.Scene {
@@ -15,15 +15,17 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create() {
+    setupCamera(this);
     this.add.rectangle(240, 135, 480, 270, 0x000000, 0.6).setScrollFactor(0);
     const g = this.add.graphics();
     panel(g, 20, 14, 440, 242);
     const info = SHOPS[this.shop];
-    this.add.image(46, 34, `npc_${this.shop}`).setScale(2);
+    this.add.image(46, 38, `npc_${this.shop}_down_idle0`).setScale(ART * 1.6);
     text(this, 66, 22, info.name.toUpperCase(), { scale: 2, color: info.color });
     text(this, 66, 42, info.desc, { color: COLORS.dim });
     this.cogs = text(this, 448, 22, '', { origin: [1, 0], color: COLORS.brass });
-    this.detail = text(this, 36, 226, '', { color: COLORS.text, maxWidth: 410 });
+    this.detailBox = this.add.graphics();
+    this.detail = [];
     this.rows = [];
     this.buildEntries();
     this.index = 0;
@@ -41,7 +43,8 @@ export class ShopScene extends Phaser.Scene {
     if (e.kind === 'upgrade') {
       const lvl = s.level(e.u.id);
       const maxed = lvl >= e.u.maxLevel;
-      return { l: `${e.u.name}  ${'*'.repeat(lvl)}${'-'.repeat(e.u.maxLevel - lvl)}`, r: maxed ? 'MAX' : `${s.costOf(e.u.id)} COGS`, ok: !maxed && s.canBuy(e.u.id), desc: e.u.desc };
+      return { l: `${e.u.name}  ${'*'.repeat(lvl)}${'-'.repeat(e.u.maxLevel - lvl)}`, r: maxed ? 'MAX' : `${s.costOf(e.u.id)} COGS`, ok: !maxed && s.canBuy(e.u.id), desc: e.u.desc, flavor: e.u.flavor,
+        extra: [`LEVEL ${lvl}/${e.u.maxLevel}${maxed ? '' : `  -  NEXT COSTS ${s.costOf(e.u.id)} COGS`}`, ...upgradePreview(e.u.id, s.data.upgrades, s.data.characters[this.slot] || 'tinker')] };
     }
     if (e.kind === 'char') {
       const owned = s.data.unlocked.includes(e.c.id);
@@ -51,6 +54,7 @@ export class ShopScene extends Phaser.Scene {
         r: chosen ? `P${this.slot + 1} SELECTED` : owned ? 'SELECT' : `UNLOCK ${e.c.unlockCost}`,
         ok: owned || s.data.cogs >= e.c.unlockCost,
         desc: e.c.desc,
+        extra: characterStats(e.c.id, s.data.upgrades),
       };
     }
     return { l: 'LEAVE', r: '', ok: true, desc: '' };
@@ -61,7 +65,7 @@ export class ShopScene extends Phaser.Scene {
     this.rows = [];
     setText(this.cogs, `${App.save.data.cogs} COGS`);
     const top = 62;
-    const visible = 13;
+    const visible = 10;
     const start = Math.max(0, Math.min(this.index - 6, this.entries.length - visible));
     this.entries.slice(start, start + visible).forEach((e, k) => {
       const i = start + k;
@@ -72,13 +76,28 @@ export class ShopScene extends Phaser.Scene {
         text(this, 40, top + k * 12, `${sel ? '>' : ' '} ${L.l}`, { color: col }),
         text(this, 446, top + k * 12, L.r, { origin: [1, 0], color: sel ? COLORS.brass : COLORS.dim }),
       ];
-      if (e.kind === 'char') row.push(this.add.image(34, top + k * 12 + 4, `pl_${e.c.id}_0`).setScale(0.6));
+      if (e.kind === 'char') row.push(this.add.image(34, top + k * 12 + 2, `pl_${e.c.id}_down_idle0`).setScale(ART * 0.55));
       this.rows.push(row);
     });
+    // Detail panel: description, flavour and a preview of what buying does.
+    for (const d of this.detail) d.destroy();
+    this.detail = [];
     const L = this.label(this.entries[this.index]);
-    setText(this.detail, L.desc);
-    if (this.entries[this.index].kind === 'char') this.detail.setTint(PLAYER_COLORS[this.slot]);
-    else this.detail.setTint(COLORS.text);
+    const g = this.detailBox;
+    g.clear();
+    if (!L.desc) return;
+    g.fillStyle(0x100c0a, 0.9).fillRect(30, 186, 420, 64);
+    g.lineStyle(1, 0x7a5a17, 1).strokeRect(30.5, 186.5, 419, 63);
+    let y = 190;
+    const add = (str, col, x = 36) => {
+      const t = text(this, x, y, str, { color: col, maxWidth: 404 });
+      this.detail.push(t);
+      y += t.height + 2;
+    };
+    const isChar = this.entries[this.index].kind === 'char';
+    add(L.desc, isChar ? PLAYER_COLORS[this.slot] : COLORS.text);
+    if (L.flavor) add(`"${L.flavor}"`, 0x8a7a64);
+    for (const line of L.extra || []) add(line, COLORS.copper);
   }
 
   activate() {

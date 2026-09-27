@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { App, ROOM_X, ROOM_Y } from '../state.js';
+import { App, ROOM_X, ROOM_Y, setupCamera, ART } from '../state.js';
 import { text, setText, panel, COLORS, rarityColor } from '../ui/text.js';
 import { ITEM_MAP, CONSUMABLE_MAP, SYNERGY_MAP, PLAYER_COLORS, CHARACTER_MAP, MODIFIER_MAP, ROOM_PX_W, ROOM_PX_H, BOSS_MAP } from '@undercrank/shared';
 
@@ -20,6 +20,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   create() {
+    setupCamera(this);
     this.bg = this.add.graphics();
     this.g = this.add.graphics();
     this.mini = this.add.graphics();
@@ -125,11 +126,11 @@ export class HudScene extends Phaser.Scene {
       o = {
         name: text(this, 0, 4, '', { color: PLAYER_COLORS[p.slot % 4] }),
         cogs: text(this, 0, 4, '', { origin: [1, 0], color: COLORS.brass }),
-        cogIcon: this.add.image(0, 8, 'ui_cog'),
+        cogIcon: this.add.image(0, 8, 'ui_cog').setScale(ART),
         hearts: [],
         dash: [],
-        active: this.add.image(0, 0, 'ui_cog').setVisible(false),
-        cons: this.add.image(0, 0, 'ui_cog').setVisible(false),
+        active: this.add.image(0, 0, 'ui_cog').setVisible(false).setScale(ART),
+        cons: this.add.image(0, 0, 'ui_cog').setVisible(false).setScale(ART),
         consKey: text(this, 0, 0, '', { color: COLORS.dim }),
         activeKey: text(this, 0, 0, '', { color: COLORS.dim }),
         status: text(this, 0, 0, '', { color: COLORS.red }),
@@ -161,7 +162,7 @@ export class HudScene extends Phaser.Scene {
       // Hearts
       const maxHp = p.loadout?.stats?.maxHp || 6;
       const nh = Math.ceil(maxHp / 2);
-      while (o.hearts.length < nh) o.hearts.push(this.add.image(0, 0, 'ui_heart').setOrigin(0, 0));
+      while (o.hearts.length < nh) o.hearts.push(this.add.image(0, 0, 'ui_heart').setOrigin(0, 0).setScale(ART));
       const perRow = Math.max(6, Math.floor((o.w - 4) / 8));
       o.hearts.forEach((h, hi) => {
         if (hi >= nh) return h.setVisible(false);
@@ -172,7 +173,7 @@ export class HudScene extends Phaser.Scene {
 
       // Dash pips
       const dc = p.loadout?.stats?.dashCharges ?? 1;
-      while (o.dash.length < dc) o.dash.push(this.add.image(0, 0, 'ui_dash').setOrigin(0, 0));
+      while (o.dash.length < dc) o.dash.push(this.add.image(0, 0, 'ui_dash').setOrigin(0, 0).setScale(ART));
       o.dash.forEach((d, di) => {
         if (di >= dc) return d.setVisible(false);
         d.setVisible(true).setTexture(di < p.dashCharges ? 'ui_dash' : 'ui_dash_e').setPosition(x + 2 + di * 7, 33);
@@ -256,7 +257,7 @@ export class HudScene extends Phaser.Scene {
     const me = view.players.find((p) => p.id === this.gs.localIds[0]);
     if (me) {
       const items = me.items || [];
-      while (this.buildIcons.length < items.length) this.buildIcons.push(this.add.image(0, 0, 'ui_cog'));
+      while (this.buildIcons.length < items.length) this.buildIcons.push(this.add.image(0, 0, 'ui_cog').setScale(ART));
       const colX = ROOM_X + ROOM_PX_W + 6;
       this.buildIcons.forEach((ic, i) => {
         if (i >= items.length || i >= 42) return ic.setVisible(false);

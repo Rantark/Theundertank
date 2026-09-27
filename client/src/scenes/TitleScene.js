@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { App } from '../state.js';
+import { App, setupCamera, ART } from '../state.js';
 import { text, COLORS } from '../ui/text.js';
 import { Menu } from '../ui/Menu.js';
 
@@ -10,12 +10,13 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    setupCamera(this);
     this.cameras.main.setBackgroundColor('#0d0b0a');
     // Slowly turning background gears.
     this.gears = [];
     const spots = [[40, 50, 3, 0x3a2a1a], [440, 60, 4, 0x2e2418], [420, 230, 3, 0x3a2a1a], [70, 220, 5, 0x2a2016], [240, 290, 7, 0x1e1812]];
     for (const [x, y, s, c] of spots) {
-      const g = this.add.image(x, y, 'cog5').setScale(s).setTint(c);
+      const g = this.add.image(x, y, 'cog5').setScale(s * ART).setTint(c);
       g.spin = (Math.random() < 0.5 ? -1 : 1) * (0.2 / s);
       this.gears.push(g);
     }
@@ -23,7 +24,7 @@ export class TitleScene extends Phaser.Scene {
       x: { min: 0, max: 480 }, y: 280, speedY: { min: -30, max: -12 }, speedX: { min: -6, max: 6 },
       lifespan: 6000, scale: { start: 1, end: 5 }, alpha: { start: 0.12, end: 0 }, frequency: 180, tint: 0xe6e9e4,
     });
-    this.add.image(240, 64, 'gate').setScale(1.2).setAlpha(0.35);
+    this.add.image(240, 64, 'gate').setScale(1.2 * ART).setAlpha(0.35);
     text(this, 240, 40, 'THE', { scale: 1, origin: [0.5, 0.5], color: COLORS.copper });
     text(this, 240, 62, 'UNDERCRANK', { scale: 3, origin: [0.5, 0.5], color: COLORS.brass });
     text(this, 240, 88, 'A CLOCKWORK ROGUELIKE', { origin: [0.5, 0.5], color: COLORS.verdigris });

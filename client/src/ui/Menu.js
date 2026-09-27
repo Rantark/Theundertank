@@ -1,5 +1,5 @@
 // Simple vertical menu driven by any input device.
-import { App } from '../state.js';
+import { App, ART } from '../state.js';
 import { text, setText, COLORS } from './text.js';
 
 export class Menu {
@@ -16,7 +16,7 @@ export class Menu {
     this.texts = items.map((it, i) =>
       text(scene, this.o.x, this.o.y + i * this.o.spacing, '', { origin: [this.o.align === 'center' ? 0.5 : 0, 0], depth: this.o.depth }),
     );
-    this.cursor = scene.add.image(0, 0, 'ui_cog').setDepth(this.o.depth);
+    this.cursor = scene.add.image(0, 0, 'ui_cog').setDepth(this.o.depth).setScale(ART);
     this.active = true;
     this.refresh();
   }
@@ -63,7 +63,7 @@ export class Menu {
     // Mouse hover/click support.
     const m = inp.mouse;
     if (m.moved || m.leftPressed) {
-      const px = this.scene.input.activePointer;
+      const px = App.input.mouse;
       this.texts.forEach((t, i) => {
         const b = t.getBounds();
         if (px.x >= b.x - 10 && px.x <= b.right + 4 && px.y >= b.y - 2 && px.y <= b.bottom + 2) {

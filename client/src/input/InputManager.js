@@ -62,9 +62,13 @@ export class InputManager {
   /** Called once per frame by the active scene with the Phaser pointer. */
   poll(pointer) {
     if (pointer) {
-      if (pointer.x !== this.mouse.x || pointer.y !== this.mouse.y) this.mouse.moved = true;
-      this.mouse.x = pointer.x;
-      this.mouse.y = pointer.y;
+      // Convert canvas pixels into the 480x270 logical space all scenes use.
+      const z = pointer.camera?.zoom || 2;
+      const x = pointer.x / z;
+      const y = pointer.y / z;
+      if (x !== this.mouse.x || y !== this.mouse.y) this.mouse.moved = true;
+      this.mouse.x = x;
+      this.mouse.y = y;
     }
     const gps = navigator.getGamepads ? navigator.getGamepads() : [];
     for (let i = 0; i < 4; i++) {

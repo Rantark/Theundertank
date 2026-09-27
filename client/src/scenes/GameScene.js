@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { App, ROOM_X, ROOM_Y } from '../state.js';
+import { App, ROOM_X, ROOM_Y, setupCamera } from '../state.js';
 import { LocalSession } from '../net/LocalSession.js';
 import { WorldRenderer } from '../gfx/worldRenderer.js';
 import { Fx } from '../gfx/fx.js';
@@ -17,7 +17,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const cam = this.cameras.main;
+    const cam = setupCamera(this);
     cam.setBackgroundColor('#0d0b0a');
     cam.setScroll(-ROOM_X, -ROOM_Y);
     if (this.mode === 'online') {
@@ -83,8 +83,7 @@ export class GameScene extends Phaser.Scene {
     // from snapshots inside update(), so input is sent even before a view exists).
     const inputs = {};
     if (!pausedOverlay) {
-      const ptr = this.input.activePointer;
-      const mouseWorld = { x: ptr.x - ROOM_X, y: ptr.y - ROOM_Y };
+      const mouseWorld = { x: inp.mouse.x - ROOM_X, y: inp.mouse.y - ROOM_Y };
       this.localIds.forEach((pid, slot) => {
         const p = view?.players.find((q) => q.id === pid);
         const screen = p ? { x: p.x + ROOM_X, y: p.y + ROOM_Y - 3 } : null;
@@ -128,7 +127,7 @@ export class GameScene extends Phaser.Scene {
     const hud = this.scene.get('Hud');
     switch (e.type) {
       case 'fire':
-        this.fx.flash(e.x, e.y, 'muzzle', { rot: e.a, scale: 0.9, dur: 50, tint: e.heat > 0.5 ? 0xff9c3a : 0xffe08a });
+        this.fx.flash(e.x, e.y - 1, 'muzzle', { rot: e.a, scale: 0.45, dur: 50, tint: e.heat > 0.5 ? 0xff9c3a : 0xffe08a });
         this.fx.smoke.explode(1, e.x, e.y);
         App.audio.play('shoot');
         break;

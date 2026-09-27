@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { App } from '../state.js';
+import { App, setupCamera } from '../state.js';
 import { text, setText, panel, COLORS } from '../ui/text.js';
 import { NetClient } from '../net/NetClient.js';
 
@@ -12,6 +12,7 @@ export class OnlineScene extends Phaser.Scene {
   }
 
   create() {
+    setupCamera(this);
     App.audio.setMood('title');
     const g = this.add.graphics();
     panel(g, 90, 40, 300, 190);

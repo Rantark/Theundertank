@@ -7,7 +7,8 @@ dungeon whose gears rearrange every time someone descends. Spend Cogs in town on
 upgrades, dive into an endless series of floors, stack items into absurd synergies, die, and
 come back stronger.
 
-All art is generated procedurally in code (16×16 sprites, 32×32 bosses, a 5×7 bitmap font),
+All art is generated procedurally in code at 2× pixel density: 32×64 characters with 4-frame walk
+cycles in front/back/side views, 32–40 px enemies, 80 px bosses, 32 px tiles, and a 5×7 bitmap font,
 and every sound effect and music track is synthesised with the Web Audio API. There are no
 asset files.
 
@@ -166,7 +167,9 @@ rejoins on the next floor. Difficulty scales with player count.
     snapshot.js    compact network encoding/decoding of the dynamic state
   src/rng.js       seeded RNG (mulberry32) with fork()
 /client   Phaser 3 + Vite
-  src/gfx/         procedural sprites (pix.js, sprites.js, icons.js), font, room + world renderers, FX
+  src/gfx/         procedural art: pix.js (drawing + shaded parts), chars.js (paper-doll characters),
+                   enemyArt.js, sprites.js (tiles, props, UI, town), icons.js; renderers and FX
+  src/dev/         spriteSheet.js - dev-only sprite viewer (open /sprites.html under npm run dev)
   src/scenes/      Boot, Title, Town, Shop, Game, Hud, Pause, Summary, Online
   src/net/         LocalSession (in-browser sim), NetClient/NetSession (online), prediction
   src/input/       keyboard/mouse + Gamepad API, device-to-player slots
@@ -191,6 +194,18 @@ movement is predicted from local input, replaying inputs the server hasn't ackno
 smoothly reconciled. Button presses are sent as ever-increasing counters, so no press is lost
 between ticks.
 
+**Enemy navigation.** `sim/nav.js` keeps a flow field (8-way Dijkstra from every living player,
+rebuilt 5×/s) over the room grid. Walkers descend it to chase and climb it to retreat, cutting
+smooth diagonals toward the furthest waypoint they can reach in a straight line. Hazards
+(erupting vents, the players' fire, steam and oil) cost extra, so enemies route around them.
+Shooters only fire with line of sight and move to find it. Stuck enemies side-step, hoppers leap
+along the path, and burrowers surface on open floor.
+
+**Descriptions come from data.** `shared/src/describe.js` turns item and upgrade data into UI text
+("+20% fire rate", "Ignites enemies (6 dmg/s for 2.5s)", "DAMAGE 12 -> 13"). It also lists the
+synergies an item belongs to, and item cards flag when a pickup would complete one of yours, so
+descriptions never drift from what the code does.
+
 **Readability.** Player shots are small, bright and outline-free (brass, fire, electric);
 enemy shots are larger magenta rings with a pale core and a dark outline, so they read
 against any floor.
@@ -204,6 +219,7 @@ against any floor.
 ```js
 { id: 'frost_valve', name: 'Frost Valve', rarity: 'rare', tags: ['CLOCKWORK'],
   desc: 'Shots slow enemies; +10% damage.',
+  flavor: 'Frost forms on the pipes. The automatons hate it.',  // shown in item cards and the pause screen
   stats: { damage: { mult: 1.1 } },                 // additive (add) then multiplicative (mult)
   proj:  { slow: { amount: 0.4, duration: 1.2 } },  // projectile behaviours (behaviors.js)
   hooks: [{ on: 'kill', action: 'cloud', chance: 0.3, params: { radius: 18, dps: 10, life: 2 } }],
@@ -238,7 +254,8 @@ A toast announces a synergy the moment it activates. There are 47 items, 6 consu
 
 Pick an `ai` from `AI` in `sim/enemies.js` (`chaser`, `turret`, `kiter`, `bomber`, `hopper`,
 `bouncer`, `burrower`, `shielded`, `teleporter`, `summoner`, `sprayer`), tune `params`, and set
-`minDepth` and `weight`. Add a drawer in `ENEMY_DRAW` (`client/src/gfx/sprites.js`).
+`minDepth` and `weight`. Add a 4-frame drawer in `DRAW` (`client/src/gfx/enemyArt.js`); preview it at
+`http://localhost:5173/sprites.html?only=enemy`.
 
 ### Bosses — `shared/src/data/bosses.js`
 

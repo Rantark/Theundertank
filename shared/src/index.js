@@ -16,3 +16,4 @@ export { CHARACTERS, CHARACTER_MAP, BASE_STATS } from './data/characters.js';
 export { UPGRADES, UPGRADE_MAP, SHOPS, upgradeCost } from './data/upgrades.js';
 export { FLOOR_MODIFIERS, MODIFIER_MAP } from './data/modifiers.js';
 export { ROOM_TEMPLATES } from './data/rooms.js';
+export * from './describe.js';

@@ -76,39 +76,99 @@ function randomFloorPoint(g, minDistFromPlayers = 60) {
   return [ROOM_W * TILE / 2, ROOM_H * TILE / 2];
 }
 
+// ---------------------------------------------------------------- movement helpers
+/**
+ * Move along a unit vector, with stuck detection: if an enemy barely moves while trying
+ * to, it side-steps for a moment (helps crowds flow around corners and each other).
+ */
+function walk(g, e, v, speed, dt) {
+  if (!v) return;
+  let [vx, vy] = v;
+  if (e.unstickT > 0) {
+    e.unstickT -= dt;
+    vx = e.unstickX;
+    vy = e.unstickY;
+  }
+  const ox = e.x;
+  const oy = e.y;
+  moveEnemy(g, e, vx * speed, vy * speed, dt);
+  const want = speed * dt;
+  const got = Math.hypot(e.x - ox, e.y - oy);
+  if (want > 0.2 && got < want * 0.25) e.stuck = (e.stuck || 0) + dt;
+  else e.stuck = Math.max(0, (e.stuck || 0) - dt * 2);
+  if (e.stuck > 0.35 && !(e.unstickT > 0)) {
+    const side = g.rng.chance(0.5) ? 1 : -1;
+    e.unstickX = -vy * side;
+    e.unstickY = vx * side;
+    e.unstickT = 0.35;
+    e.stuck = 0;
+  }
+}
+
+/** Path toward (or away from) the players using the flow field. */
+function pursue(g, e, t, speed, dt, retreat = false) {
+  walk(g, e, g.nav.steer(e, t, retreat), speed, dt);
+}
+
+/** Circle-strafe around a target while holding a preferred distance band. */
+function orbit(g, e, t, band, speed, dt) {
+  const st = e.st;
+  const d = dist(e.x, e.y, t.x, t.y);
+  const a = angleTo(e.x, e.y, t.x, t.y);
+  let mx = Math.cos(a + Math.PI / 2) * st.strafe * 0.8;
+  let my = Math.sin(a + Math.PI / 2) * st.strafe * 0.8;
+  if (d < band[0]) {
+    const v = g.nav.steer(e, t, true) || [-Math.cos(a), -Math.sin(a)];
+    mx += v[0];
+    my += v[1];
+  } else if (d > band[1]) {
+    const v = g.nav.steer(e, t) || [Math.cos(a), Math.sin(a)];
+    mx += v[0];
+    my += v[1];
+  }
+  const l = Math.hypot(mx, my) || 1;
+  const before = [e.x, e.y];
+  walk(g, e, [mx / l, my / l], speed, dt);
+  if (Math.hypot(e.x - before[0], e.y - before[1]) < speed * dt * 0.3) st.strafe *= -1;
+}
+
 // ---------------------------------------------------------------- AI behaviours
 export const AI = {
-  // Cogling: scurries toward you and periodically lunges.
+  // Cogling: scurries along the flow field and lunges once it has a clear line.
   chaser(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
-    const a = angleTo(e.x, e.y, t.x, t.y);
     const st = e.st;
     if (st.mode === 'init') Object.assign(st, { mode: 'move', t: rr(g, P.lungeEvery) });
     st.t -= dt * e.rate;
     if (st.mode === 'move') {
-      moveEnemy(g, e, Math.cos(a) * e.speed * sm, Math.sin(a) * e.speed * sm, dt);
-      if (st.t <= 0) Object.assign(st, { mode: 'wind', t: 0.28, a });
+      pursue(g, e, t, e.speed * sm, dt);
+      const clear = dist(e.x, e.y, t.x, t.y) < 110 && g.nav.clearWalk(e.x, e.y, t.x, t.y, e.r);
+      if (st.t <= 0 && clear) Object.assign(st, { mode: 'wind', t: 0.28, a: angleTo(e.x, e.y, t.x, t.y) });
     } else if (st.mode === 'wind') {
       e.flash = Math.max(e.flash, 0.05);
-      if (st.t <= 0) Object.assign(st, { mode: 'lunge', t: 0.32, a });
+      st.a = angleTo(e.x, e.y, t.x, t.y);
+      if (st.t <= 0) Object.assign(st, { mode: 'lunge', t: 0.32 });
     } else if (st.mode === 'lunge') {
       moveEnemy(g, e, Math.cos(st.a) * P.lungeSpeed * sm, Math.sin(st.a) * P.lungeSpeed * sm, dt);
       if (st.t <= 0) Object.assign(st, { mode: 'move', t: rr(g, P.lungeEvery) });
     }
-    e.facing = a;
+    e.facing = angleTo(e.x, e.y, t.x, t.y);
   },
 
-  // Rivet Turret: bolted down, fires aimed rivets.
+  // Rivet Turret: bolted down, only fires when it can actually see you.
   turret(e, g, dt) {
     const P = e.def.params;
     const t = target(g, e);
     const st = e.st;
-    e.facing = turnToward(e.facing, angleTo(e.x, e.y, t.x, t.y), dt * 4);
+    const sees = g.nav.canShoot(e, t);
+    if (sees) e.facing = turnToward(e.facing, angleTo(e.x, e.y, t.x, t.y), dt * 4);
     if (st.mode === 'init') Object.assign(st, { mode: 'wait', t: rr(g, P.every) * 0.6 });
     st.t -= dt * e.rate;
-    if (st.mode === 'wait' && st.t <= 0) Object.assign(st, { mode: 'wind', t: 0.35 });
-    else if (st.mode === 'wind') {
+    if (st.mode === 'wait' && st.t <= 0) {
+      if (sees) Object.assign(st, { mode: 'wind', t: 0.35 });
+      else st.t = 0.2;
+    } else if (st.mode === 'wind') {
       e.flash = 0.05;
       if (st.t <= 0) Object.assign(st, { mode: 'fire', t: 0, n: P.burst + (g.depth >= 6 ? 2 : 0) });
     } else if (st.mode === 'fire' && st.t <= 0) {
@@ -119,12 +179,11 @@ export const AI = {
     }
   },
 
-  // Steam Spitter: keeps its distance, strafes and spits spreads.
+  // Steam Spitter: keeps its distance, strafes, and moves to get a clear shot.
   kiter(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
     const st = e.st;
-    const d = dist(e.x, e.y, t.x, t.y);
     const a = angleTo(e.x, e.y, t.x, t.y);
     e.facing = a;
     if (st.mode === 'init') Object.assign(st, { mode: 'move', t: rr(g, P.every), strafe: g.rng.chance(0.5) ? 1 : -1, sw: 1.5 });
@@ -134,15 +193,10 @@ export const AI = {
       st.sw = g.rng.range(1, 2.2);
       st.strafe *= -1;
     }
-    let mx = 0;
-    let my = 0;
-    if (d < P.keep[0]) [mx, my] = [-Math.cos(a), -Math.sin(a)];
-    else if (d > P.keep[1]) [mx, my] = [Math.cos(a), Math.sin(a)];
-    mx += Math.cos(a + Math.PI / 2) * st.strafe * 0.7;
-    my += Math.sin(a + Math.PI / 2) * st.strafe * 0.7;
-    const hit = moveEnemy(g, e, mx * e.speed * sm, my * e.speed * sm, dt);
-    if (hit.hitX || hit.hitY) st.strafe *= -1;
-    if (st.mode === 'move' && st.t <= 0) Object.assign(st, { mode: 'wind', t: 0.3 });
+    const sees = g.nav.canShoot(e, t);
+    if (sees) orbit(g, e, t, P.keep, e.speed * sm, dt);
+    else pursue(g, e, t, e.speed * sm * 1.15, dt); // find a firing line
+    if (st.mode === 'move' && st.t <= 0 && sees) Object.assign(st, { mode: 'wind', t: 0.3 });
     if (st.mode === 'wind') {
       e.flash = 0.05;
       if (st.t <= 0) {
@@ -154,15 +208,15 @@ export const AI = {
     }
   },
 
-  // Boiler Bomb: waddles close, fuse lights, boom.
+  // Boiler Bomb: waddles along the path, fuse lights, boom.
   bomber(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
     const st = e.st;
-    const a = angleTo(e.x, e.y, t.x, t.y);
+    e.facing = angleTo(e.x, e.y, t.x, t.y);
     if (st.mode === 'init') st.mode = 'move';
     if (st.mode === 'move') {
-      moveEnemy(g, e, Math.cos(a) * e.speed * sm, Math.sin(a) * e.speed * sm, dt);
+      pursue(g, e, t, e.speed * sm, dt);
       if (dist(e.x, e.y, t.x, t.y) < 30 && !t.fake) {
         Object.assign(st, { mode: 'fuse', t: P.fuse });
         g.emit('sfx', { n: 'fuse' });
@@ -177,7 +231,7 @@ export const AI = {
     }
   },
 
-  // Spring Hopper: crouches, leaps at you, lands with a ring of rivets.
+  // Spring Hopper: crouches, then leaps along its path (or straight at you if clear).
   hopper(e, g, dt) {
     const P = e.def.params;
     const t = target(g, e);
@@ -188,16 +242,25 @@ export const AI = {
     else if (st.mode === 'crouch') {
       e.flash = 0.05;
       if (st.t <= 0) {
-        // Leap toward (slightly past) the target, clamped to a reachable point.
-        let tx = t.x + g.rng.range(-12, 12);
-        let ty = t.y + g.rng.range(-12, 12);
+        let tx;
+        let ty;
+        if (g.nav.clearWalk(e.x, e.y, t.x, t.y, e.r, true)) {
+          tx = t.x + g.rng.range(-12, 12);
+          ty = t.y + g.rng.range(-12, 12);
+        } else {
+          // Hop to a point further along the path instead of into a wall.
+          const pts = g.nav.chain(e.x, e.y, -1, 6);
+          [tx, ty] = pts.length ? pts[pts.length - 1] : [t.x, t.y];
+        }
         const d = dist(e.x, e.y, tx, ty);
         if (d > 110) {
           tx = e.x + ((tx - e.x) / d) * 110;
           ty = e.y + ((ty - e.y) / d) * 110;
         }
+        [tx, ty] = g.nav.nearestWalkable(tx, ty);
         Object.assign(st, { mode: 'air', t: P.air, sx: e.x, sy: e.y, tx, ty });
         e.noContact = true;
+        e.flying = true; // sails over pits mid-leap
         g.emit('sfx', { n: 'spring' });
       }
     } else if (st.mode === 'air') {
@@ -209,6 +272,8 @@ export const AI = {
       if (st.t <= 0) {
         e.h = 0;
         e.noContact = false;
+        e.flying = false;
+        [e.x, e.y] = g.nav.nearestWalkable(e.x, e.y);
         const n = P.ring + (g.depth >= 7 ? 4 : 0);
         g.enemyRing(e.x, e.y, n, P.shotSpeed, g.rng.range(0, 1));
         g.emit('fx', { k: 'land', x: e.x, y: e.y });
@@ -243,7 +308,7 @@ export const AI = {
     }
   },
 
-  // Pipe Worm: tunnels (untargetable), surfaces near you, sprays a ring.
+  // Pipe Worm: tunnels (untargetable) under anything, surfaces on open floor near you.
   burrower(e, g, dt) {
     const P = e.def.params;
     const t = target(g, e);
@@ -253,19 +318,29 @@ export const AI = {
       e.untargetable = true;
       e.noContact = true;
       e.burrowed = true;
+      e.flying = true;
     }
     st.t -= dt * e.rate;
     if (st.mode === 'under') {
-      // Drift underground toward a spot near the target.
       const a = angleTo(e.x, e.y, t.x, t.y);
-      if (dist(e.x, e.y, t.x, t.y) > 45) moveEnemy(g, e, Math.cos(a) * 70, Math.sin(a) * 70, dt);
-      if (st.t <= 0) Object.assign(st, { mode: 'emerge', t: 0.45 });
+      if (dist(e.x, e.y, t.x, t.y) > 45) {
+        // Underground it ignores pits and blocks entirely.
+        e.x += Math.cos(a) * 70 * dt;
+        e.y += Math.sin(a) * 70 * dt;
+        e.x = Math.max(TILE * 1.5, Math.min(ROOM_W * TILE - TILE * 1.5, e.x));
+        e.y = Math.max(TILE * 1.5, Math.min(ROOM_H * TILE - TILE * 1.5, e.y));
+      }
+      if (st.t <= 0) {
+        [e.x, e.y] = g.nav.nearestWalkable(e.x, e.y);
+        Object.assign(st, { mode: 'emerge', t: 0.45 });
+      }
     } else if (st.mode === 'emerge') {
       e.flash = 0.05;
       if (st.t <= 0) {
         e.burrowed = false;
         e.untargetable = false;
         e.noContact = false;
+        e.flying = false;
         const n = P.ring + (g.depth >= 8 ? 4 : 0);
         g.enemyRing(e.x, e.y, n, P.shotSpeed, g.rng.range(0, 1));
         g.emit('fx', { k: 'land', x: e.x, y: e.y });
@@ -273,7 +348,7 @@ export const AI = {
       }
     } else if (st.mode === 'up') {
       st.shot -= dt;
-      if (st.shot <= 0) {
+      if (st.shot <= 0 && g.nav.canShoot(e, t)) {
         st.shot = 99;
         const a = angleTo(e.x, e.y, t.x, t.y);
         for (let i = -1; i <= 1; i++) shoot(g, e, a + i * 0.2, { speed: P.shotSpeed + 20 });
@@ -282,23 +357,27 @@ export const AI = {
         e.burrowed = true;
         e.untargetable = true;
         e.noContact = true;
+        e.flying = true;
         Object.assign(st, { mode: 'under', t: rr(g, P.under) });
         g.emit('fx', { k: 'land', x: e.x, y: e.y });
       }
     }
   },
 
-  // Brass Sentinel: slow walker with a frontal shield; lobs a bursting orb.
+  // Brass Sentinel: marches along the path behind its shield; flank it!
   shielded(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
     const st = e.st;
-    const a = angleTo(e.x, e.y, t.x, t.y);
-    e.facing = turnToward(e.facing, a, dt * 1.6); // slow turning: flank it!
+    const sees = g.nav.canShoot(e, t);
+    const v = g.nav.steer(e, t);
+    // Faces you when it can see you, otherwise faces where it walks.
+    const want = sees || !v ? angleTo(e.x, e.y, t.x, t.y) : Math.atan2(v[1], v[0]);
+    e.facing = turnToward(e.facing, want, dt * 1.6);
     if (st.mode === 'init') Object.assign(st, { mode: 'walk', t: P.every });
-    if (dist(e.x, e.y, t.x, t.y) > 40) moveEnemy(g, e, Math.cos(e.facing) * e.speed * sm, Math.sin(e.facing) * e.speed * sm, dt);
+    if (dist(e.x, e.y, t.x, t.y) > 40) walk(g, e, v, e.speed * sm, dt);
     st.t -= dt * e.rate;
-    if (st.mode === 'walk' && st.t <= 0) Object.assign(st, { mode: 'wind', t: 0.5 });
+    if (st.mode === 'walk' && st.t <= 0 && sees) Object.assign(st, { mode: 'wind', t: 0.5 });
     if (st.mode === 'wind') {
       e.flash = 0.05;
       if (st.t <= 0) {
@@ -309,7 +388,7 @@ export const AI = {
     }
   },
 
-  // Coil Wraith: blinks around the room and releases slow homing orbs.
+  // Coil Wraith: blinks to spots with a clear view of you, then releases homing orbs.
   teleporter(e, g, dt) {
     const P = e.def.params;
     const t = target(g, e);
@@ -322,7 +401,15 @@ export const AI = {
       e.noContact = true;
       e.fading = true;
     } else if (st.mode === 'fade' && st.t <= 0) {
-      const [x, y] = randomFloorPoint(g, 70);
+      let [x, y] = randomFloorPoint(g, 70);
+      for (let i = 0; i < 12; i++) {
+        const [cx, cy] = randomFloorPoint(g, 70);
+        const d = dist(cx, cy, t.x, t.y);
+        if (d < 170 && lineOfSight(g.room.grid, cx, cy, t.x, t.y)) {
+          [x, y] = [cx, cy];
+          break;
+        }
+      }
       g.emit('fx', { k: 'blink', x: e.x, y: e.y });
       e.x = x;
       e.y = y;
@@ -341,15 +428,17 @@ export const AI = {
     }
   },
 
-  // Tinker Mother: keeps away and assembles coglings.
+  // Tinker Mother: retreats along the flow field and assembles coglings.
   summoner(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
     const st = e.st;
     const a = angleTo(e.x, e.y, t.x, t.y);
+    e.facing = a;
     if (st.mode === 'init') Object.assign(st, { mode: 'roam', t: P.every * 0.5 });
     const d = dist(e.x, e.y, t.x, t.y);
-    if (d < 100) moveEnemy(g, e, -Math.cos(a) * e.speed * sm, -Math.sin(a) * e.speed * sm, dt);
+    if (d < 100) pursue(g, e, t, e.speed * sm, dt, true);
+    else if (d > 170) pursue(g, e, t, e.speed * sm * 0.6, dt);
     st.t -= dt * e.rate;
     if (st.mode === 'roam' && st.t <= 0) Object.assign(st, { mode: 'build', t: 0.8 });
     if (st.mode === 'build') {
@@ -358,15 +447,16 @@ export const AI = {
         const children = g.enemies.filter((c) => c.parent === e.id && !c.dead).length;
         for (let i = 0; i < P.spawn && children + i < P.maxChildren; i++) {
           const ca = g.rng.range(0, 6.28);
-          createEnemy(g, 'cogling', e.x + Math.cos(ca) * 12, e.y + Math.sin(ca) * 12, { parent: e.id });
+          const [cx, cy] = g.nav.nearestWalkable(e.x + Math.cos(ca) * 12, e.y + Math.sin(ca) * 12);
+          createEnemy(g, 'cogling', cx, cy, { parent: e.id });
         }
-        for (let i = -2; i <= 2; i++) shoot(g, e, a + i * 0.3, { speed: 70 });
+        if (g.nav.canShoot(e, t)) for (let i = -2; i <= 2; i++) shoot(g, e, a + i * 0.3, { speed: 70 });
         Object.assign(st, { mode: 'roam', t: P.every });
       }
     }
   },
 
-  // Smog Bellows: rotating sprinkler of bullets.
+  // Smog Bellows: plods toward you, then plants itself and sprays a rotating stream.
   sprayer(e, g, dt, sm) {
     const P = e.def.params;
     const t = target(g, e);
@@ -374,9 +464,9 @@ export const AI = {
     if (st.mode === 'init') Object.assign(st, { mode: 'rest', t: P.rest, ang: 0, cd: 0 });
     st.t -= dt * e.rate;
     if (st.mode === 'rest') {
-      const a = angleTo(e.x, e.y, t.x, t.y);
-      moveEnemy(g, e, Math.cos(a) * e.speed * sm, Math.sin(a) * e.speed * sm, dt);
-      if (st.t <= 0) Object.assign(st, { mode: 'spray', t: P.spray, dir: g.rng.chance(0.5) ? 1 : -1 });
+      pursue(g, e, t, e.speed * sm, dt);
+      e.facing = angleTo(e.x, e.y, t.x, t.y);
+      if (st.t <= 0) Object.assign(st, { mode: 'spray', t: P.spray, dir: g.rng.chance(0.5) ? 1 : -1, ang: e.facing - 0.8 * (g.rng.chance(0.5) ? 1 : -1) });
     } else {
       st.ang += P.turn * st.dir * dt;
       e.facing = st.ang;

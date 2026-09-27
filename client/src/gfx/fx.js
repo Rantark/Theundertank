@@ -1,7 +1,7 @@
 // GAME FEEL: particles, muzzle flashes, lightning, screen shake, floating numbers.
 // Driven by simulation events; purely cosmetic.
 import { text } from '../ui/text.js';
-import { App } from '../state.js';
+import { App, ART } from '../state.js';
 
 const SPARK_TINTS = [0xfff2b0, 0xffc93c, 0xffffff];
 
@@ -21,7 +21,7 @@ export class Fx {
     this.steam = add('puff', { speed: { min: 8, max: 30 }, lifespan: { min: 500, max: 900 }, scale: { start: 0.5, end: 1.6 }, alpha: { start: 0.55, end: 0 }, tint: 0xe6e9e4 }, depth - 1);
     this.smoke = add('puff', { speed: { min: 6, max: 20 }, lifespan: { min: 600, max: 1100 }, scale: { start: 0.6, end: 2 }, alpha: { start: 0.5, end: 0 }, tint: 0x3a332d }, depth - 1);
     this.fire = add('puff', { speed: { min: 20, max: 70 }, lifespan: { min: 200, max: 450 }, scale: { start: 1.2, end: 0.2 }, alpha: { start: 1, end: 0 }, tint: [0xffd08a, 0xff9c3a, 0xff5a1f], blendMode: 'ADD' });
-    this.debris = add('gearbit', { speed: { min: 50, max: 150 }, lifespan: { min: 300, max: 600 }, rotate: { min: 0, max: 360 }, scale: { start: 1, end: 0.4 }, tint: [0xc99a2e, 0xb8683a, 0x8a8178] });
+    this.debris = add('gearbit', { speed: { min: 50, max: 150 }, lifespan: { min: 300, max: 600 }, rotate: { min: 0, max: 360 }, scale: { start: ART, end: 0.4 * ART }, tint: [0xc99a2e, 0xb8683a, 0x8a8178] });
     this.electric = add('px', { speed: { min: 30, max: 90 }, lifespan: { min: 100, max: 250 }, scale: { start: 1, end: 0 }, tint: [0x6ff0ff, 0xffffff], blendMode: 'ADD' });
     this.heal = add('px', { speedY: { min: -40, max: -15 }, speedX: { min: -12, max: 12 }, lifespan: 600, scale: { start: 1.2, end: 0 }, tint: [0x8fd14f, 0xd0ffb0] });
     this.gold = add('px', { speed: { min: 20, max: 60 }, lifespan: 400, scale: { start: 1, end: 0 }, tint: [0xffe08a, 0xffffff], blendMode: 'ADD' });
@@ -54,8 +54,8 @@ export class Fx {
   }
 
   ring(x, y, r, tint = 0xffffff, dur = 300) {
-    const img = this.scene.add.image(x, y, 'ringfx').setDepth(61).setTint(tint).setScale(0.1).setBlendMode('ADD');
-    this.scene.tweens.add({ targets: img, scale: (r * 2) / 32, alpha: 0, duration: dur, ease: 'Cubic.Out', onComplete: () => img.destroy() });
+    const img = this.scene.add.image(x, y, 'ringfx').setDepth(61).setTint(tint).setScale(0.05).setBlendMode('ADD');
+    this.scene.tweens.add({ targets: img, scale: (r * 2) / 64, alpha: 0, duration: dur, ease: 'Cubic.Out', onComplete: () => img.destroy() });
   }
 
   number(x, y, str, color = 0xffe08a) {
