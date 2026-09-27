@@ -115,7 +115,27 @@ export class TownScene extends Phaser.Scene {
     this.prompt = text(this, 240, 256, '', { origin: [0.5, 0], color: COLORS.text, depth: 1001 }).setScrollFactor(0);
     this.onlineText = text(this, 474, 18, '', { origin: [1, 0], color: COLORS.cyan, depth: 1001, maxWidth: 200 }).setScrollFactor(0);
     this.events.on('resume', () => this.refreshPlayers());
-    if (App.net) App.net.onLobby = () => this.updateOnline();
+    if (App.net) {
+      App.net.onLobby = () => this.updateOnline();
+      App.net.onStart = () => {
+        if (this.leaving) return;
+        this.leaving = true;
+        App.audio.play('descend');
+        this.cameras.main.fadeOut(400);
+        this.time.delayedCall(420, () => this.scene.start('Game', { mode: 'online' }));
+      };
+      App.net.onError = (msg) => {
+        setText(this.onlineText, msg);
+      };
+      // The shop scene may have changed our character or upgrades.
+      App.net.sendProfile();
+      this.events.once('shutdown', () => {
+        if (!App.net) return;
+        App.net.onLobby = null;
+        App.net.onStart = null;
+        App.net.onError = null;
+      });
+    }
   }
 
   spawnPlayer(slot) {
@@ -189,7 +209,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   descend() {
-    if (this.leaving) return;
+    if (this.leaving || App.net) return;
     this.leaving = true;
     App.audio.play('descend');
     this.cameras.main.fadeOut(500);
@@ -199,9 +219,11 @@ export class TownScene extends Phaser.Scene {
 
   updateOnline() {
     const n = App.net;
-    if (!n || !n.lobby) return setText(this.onlineText, '');
-    const lines = [`ROOM ${n.lobby.code}`];
-    for (const pl of n.lobby.players) lines.push(`${pl.ready ? '[READY]' : '[     ]'} ${pl.name}${pl.id === n.playerId ? ' (YOU)' : ''}`);
+    if (!n || !n.lobby) return;
+    const lines = [`ROOM CODE: ${n.lobby.code}`];
+    for (const pl of n.lobby.players) lines.push(`${pl.ready ? '[READY]' : '[WAIT] '} ${pl.name}${pl.id === n.playerId ? ' (YOU)' : ''}`);
+    if (n.lobby.inGame) lines.push('RUN IN PROGRESS...');
+    else lines.push('ALL READY AT THE GATE = DESCEND');
     setText(this.onlineText, lines.join('\n'));
   }
 

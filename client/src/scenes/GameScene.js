@@ -71,25 +71,22 @@ export class GameScene extends Phaser.Scene {
     const pausedOverlay = this.scene.isActive('Pause');
     if (!pausedOverlay) inp.poll(this.input.activePointer);
     const view = this.session.view;
-    if (!view || !view.room) {
-      if (!pausedOverlay) inp.endFrame();
-      return;
-    }
     const dt = delta / 1000;
 
-    if (!pausedOverlay && (inp.menu('pause') || inp.menu('tab')) && !this.ending) {
+    if (view && !pausedOverlay && (inp.menu('pause') || inp.menu('tab')) && !this.ending) {
       this.openPause();
       inp.endFrame();
       return;
     }
 
-    // Gather input for each local player.
+    // Gather input for each local player (the online session builds its first view
+    // from snapshots inside update(), so input is sent even before a view exists).
     const inputs = {};
     if (!pausedOverlay) {
       const ptr = this.input.activePointer;
       const mouseWorld = { x: ptr.x - ROOM_X, y: ptr.y - ROOM_Y };
       this.localIds.forEach((pid, slot) => {
-        const p = view.players.find((q) => q.id === pid);
+        const p = view?.players.find((q) => q.id === pid);
         const screen = p ? { x: p.x + ROOM_X, y: p.y + ROOM_Y - 3 } : null;
         inputs[pid] = inp.playerInput(slot, screen, mouseWorld);
       });

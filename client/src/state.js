@@ -17,3 +17,6 @@ export const SCREEN_W = 480;
 export const SCREEN_H = 270;
 export const ROOM_X = 56;
 export const ROOM_Y = 58;
+
+// Exposed for debugging from the browser console.
+window.__app = App;
