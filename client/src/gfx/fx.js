@@ -30,8 +30,11 @@ export class Fx {
     this.flashes = scene.add.group();
   }
 
+  /** Add screen shake. Scaled by the player's setting (0 = off) and kept gentle overall. */
   shake(a) {
-    this.shakeAmt = Math.min(12, this.shakeAmt + a * App.save.data.settings.shake);
+    const s = App.save.data.settings.shake ?? 0.35;
+    if (s <= 0) return;
+    this.shakeAmt = Math.min(5 * s + 0.5, this.shakeAmt + a * 0.5 * s);
   }
 
   /** Returns [dx, dy] camera offset for this frame. */
@@ -47,6 +50,8 @@ export class Fx {
 
   flash(x, y, tex = 'flash', o = {}) {
     const s = this.scene;
+    // "Screen flashes" off: keep small muzzle flashes, drop big bright bursts.
+    if (App.save.data.settings.flashes === false && tex === 'glow') return null;
     const img = s.add.image(x, y, tex).setDepth(o.depth ?? 60).setBlendMode('ADD').setTint(o.tint ?? 0xffffff).setScale(o.scale ?? 1).setRotation(o.rot ?? 0);
     img.setAlpha(o.alpha ?? 1);
     s.tweens.add({ targets: img, alpha: 0, scale: (o.scale ?? 1) * (o.grow ?? 1.2), duration: o.dur ?? 80, onComplete: () => img.destroy() });
@@ -59,6 +64,7 @@ export class Fx {
   }
 
   number(x, y, str, color = 0xffe08a) {
+    if (App.save.data.settings.damageNumbers === false) return;
     const t = text(this.scene, x, y, str, { origin: [0.5, 1], color, depth: 70 });
     this.scene.tweens.add({ targets: t, y: y - 14, alpha: 0, duration: 650, ease: 'Cubic.Out', onComplete: () => t.destroy() });
   }

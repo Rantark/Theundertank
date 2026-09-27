@@ -10,6 +10,15 @@ const DEADZONE = 0.22;
 // Standard gamepad button indices.
 export const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, LS: 10, RS: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 
+const PAD_LABELS = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BACK', 'START', 'L3', 'R3', 'D-UP', 'D-DOWN', 'D-LEFT', 'D-RIGHT'];
+function keyLabel(code) {
+  const names = { Space: 'SPACE', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT', Escape: 'ESC', Enter: 'ENTER', ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ControlLeft: 'CTRL', AltLeft: 'ALT', Tab: 'TAB' };
+  if (names[code]) return names[code];
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  return code.toUpperCase();
+}
+
 function dz(v) {
   return Math.abs(v) < DEADZONE ? 0 : (v - Math.sign(v) * DEADZONE) / (1 - DEADZONE);
 }
@@ -28,6 +37,8 @@ export class InputManager {
     this.seq = [0, 1, 2, 3].map(() => ({ dash: 0, active: 0, cons: 0, inter: 0, ping: 0 }));
     this.lastDevice = 'kbm';
     this.textCapture = null; // callback(key) when a text field is active
+    this.padCapture = null; // callback(button) while rebinding a gamepad action
+    this.settings = null; // player settings (bindings, auto-fire); set by state.js
 
     window.addEventListener('keydown', (e) => {
       if (this.textCapture) {
@@ -85,6 +96,11 @@ export class InputManager {
         if (down && !prev[bi]) {
           this.padPressed[i].add(bi);
           this.lastDevice = `pad${i}`;
+          if (this.padCapture) {
+            const cb = this.padCapture;
+            this.padCapture = null;
+            cb(bi, i);
+          }
         }
         prev[bi] = down;
       });
@@ -116,7 +132,7 @@ export class InputManager {
     if (device === 'kbm') {
       const map = {
         confirm: ['Enter', 'Space', 'KeyE'], back: ['Escape', 'Backspace'], up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'],
-        left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], pause: ['Escape', 'KeyP'], join: ['Enter'], leave: [], tab: ['Tab'],
+        left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], pause: this.binds('pause'), join: ['Enter'], leave: [], tab: ['Tab'],
       }[what];
       return map ? map.some((k) => this.keysPressed.has(k)) : false;
     }
@@ -175,6 +191,15 @@ export class InputManager {
     return this.slots.indexOf(device);
   }
 
+  /** Keyboard codes bound to an action (from settings, with safe fallbacks). */
+  binds(action) {
+    return this.settings?.keys?.[action] || [];
+  }
+
+  padBinds(action) {
+    return this.settings?.pad?.[action] || [];
+  }
+
   /**
    * Build the simulation input for a local slot.
    * @param {number} slot
@@ -186,12 +211,13 @@ export class InputManager {
     const inp = emptyInput();
     const s = this.seq[slot];
     if (device === 'kbm') {
-      const k = this.keys;
-      inp.mx = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
-      inp.my = (k.has('KeyS') ? 1 : 0) - (k.has('KeyW') ? 1 : 0);
-      // Arrow keys shoot in that direction (classic twin-stick on keyboard).
-      const axk = (k.has('ArrowRight') ? 1 : 0) - (k.has('ArrowLeft') ? 1 : 0);
-      const ayk = (k.has('ArrowDown') ? 1 : 0) - (k.has('ArrowUp') ? 1 : 0);
+      const held = (a) => this.binds(a).some((c) => this.keys.has(c));
+      const hit = (a) => this.binds(a).some((c) => this.keysPressed.has(c));
+      inp.mx = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
+      inp.my = (held('down') ? 1 : 0) - (held('up') ? 1 : 0);
+      // Shoot keys fire in that direction (classic twin-stick on keyboard).
+      const axk = (held('aimRight') ? 1 : 0) - (held('aimLeft') ? 1 : 0);
+      const ayk = (held('aimDown') ? 1 : 0) - (held('aimUp') ? 1 : 0);
       if (axk || ayk) {
         inp.ax = axk;
         inp.ay = ayk;
@@ -204,14 +230,13 @@ export class InputManager {
         inp.ay /= l;
         inp.ax *= 0.3; // below auto-fire threshold: mouse aim only fires on click
         inp.ay *= 0.3;
-        inp.fire = this.mouse.left;
+        inp.fire = this.mouse.left || !!this.settings?.autoFire;
       }
-      const kp = this.keysPressed;
-      if (kp.has('Space') || kp.has('ShiftLeft') || kp.has('ShiftRight') || this.mouse.rightPressed) s.dash++;
-      if (kp.has('KeyQ')) s.active++;
-      if (kp.has('KeyF')) s.cons++;
-      if (kp.has('KeyE')) s.inter++;
-      if (kp.has('KeyC') || this.mouse.middlePressed) s.ping++;
+      if (hit('dash') || this.mouse.rightPressed) s.dash++;
+      if (hit('active')) s.active++;
+      if (hit('cons')) s.cons++;
+      if (hit('interact')) s.inter++;
+      if (hit('ping') || this.mouse.middlePressed) s.ping++;
       if (mouseWorld) {
         inp.px = mouseWorld.x;
         inp.py = mouseWorld.y;
@@ -227,18 +252,19 @@ export class InputManager {
         inp.ay = ry;
         const b = gp.buttons;
         const down = (n) => b[n] && (b[n].pressed || b[n].value > 0.5);
-        if (down(PAD.RT) && Math.hypot(rx, ry) < 0.3) {
+        if (this.padBinds('fire').some(down) && Math.hypot(rx, ry) < 0.3) {
           // Fire toward the last aim / move direction when only the trigger is held.
           inp.fire = true;
           inp.ax = inp.ax || lx * 0.3;
           inp.ay = inp.ay || ly * 0.3;
         }
         const pp = this.padPressed[i];
-        if (pp.has(PAD.A) || pp.has(PAD.LT) || pp.has(PAD.RB)) s.dash++;
-        if (pp.has(PAD.Y)) s.active++;
-        if (pp.has(PAD.LB) || pp.has(PAD.B)) s.cons++;
-        if (pp.has(PAD.X)) s.inter++;
-        if (pp.has(PAD.UP) || pp.has(PAD.RS)) s.ping++;
+        const tap = (a) => this.padBinds(a).some((btn) => pp.has(btn));
+        if (tap('dash')) s.dash++;
+        if (tap('active')) s.active++;
+        if (tap('cons')) s.cons++;
+        if (tap('interact')) s.inter++;
+        if (tap('ping')) s.ping++;
       }
     }
     inp.dash = s.dash;
@@ -253,12 +279,19 @@ export class InputManager {
     return device === 'kbm' ? 'KEYBOARD' : `PAD ${this.padIndex(device) + 1}`;
   }
 
-  /** Short hint for a given action on the device of a slot. */
+  /** Short hint for a given action on the device of a slot (reflects rebinding). */
   hint(slot, action) {
-    const pad = this.slots[slot] !== 'kbm';
-    const H = pad
-      ? { interact: 'X', dash: 'A', active: 'Y', cons: 'LB', ping: 'UP', confirm: 'A', back: 'B', pause: 'START' }
-      : { interact: 'E', dash: 'SPACE', active: 'Q', cons: 'F', ping: 'C', confirm: 'ENTER', back: 'ESC', pause: 'ESC' };
-    return H[action] || '?';
+    const pad = this.slots[slot] && this.slots[slot] !== 'kbm';
+    const act = { interact: 'interact', dash: 'dash', active: 'active', cons: 'cons', ping: 'ping', pause: 'pause' }[action];
+    if (action === 'confirm') return pad ? 'A' : 'ENTER';
+    if (action === 'back') return pad ? 'B' : 'ESC';
+    if (pad) {
+      if (action === 'pause') return 'START';
+      const b = this.padBinds(act)[0];
+      return b === undefined ? '?' : PAD_LABELS[b] ?? `B${b}`;
+    }
+    const code = this.binds(act)[0];
+    return code ? keyLabel(code) : '?';
   }
+
 }

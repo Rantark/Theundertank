@@ -11,6 +11,7 @@ export const App = {
   lastSummary: null,
 };
 App.audio = new Audio(App.save.data.settings);
+App.input.settings = App.save.data.settings;
 
 // Screen layout (base resolution 480x270). The room is drawn at ROOM_X/ROOM_Y.
 // Every scene lays out in a 480x270 logical space; cameras zoom 2x onto a 960x540 canvas.

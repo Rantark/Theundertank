@@ -9,6 +9,7 @@ import { PauseScene } from './scenes/PauseScene.js';
 import { SummaryScene } from './scenes/SummaryScene.js';
 import { ShopScene } from './scenes/ShopScene.js';
 import { OnlineScene } from './scenes/OnlineScene.js';
+import { OptionsScene } from './scenes/OptionsScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -21,7 +22,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { gamepad: false, keyboard: false },
   fps: { target: 60 },
-  scene: [BootScene, TitleScene, TownScene, GameScene, HudScene, PauseScene, SummaryScene, ShopScene, OnlineScene],
+  scene: [BootScene, TitleScene, TownScene, GameScene, HudScene, PauseScene, SummaryScene, ShopScene, OnlineScene, OptionsScene],
 });
 
 // Handy for debugging from the console.

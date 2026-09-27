@@ -1,5 +1,6 @@
 // Permanent progression, persisted in localStorage.
 import { UPGRADE_MAP, upgradeCost, CHARACTER_MAP } from '@undercrank/shared';
+import { defaultSettings, loadSettings } from './settings.js';
 
 const KEY = 'undercrank_save_v1';
 
@@ -12,7 +13,7 @@ const DEFAULT = () => ({
   runs: 0,
   totalCogs: 0,
   name: `Tinker-${Math.floor(Math.random() * 9000 + 1000)}`,
-  settings: { sfx: 0.7, music: 0.5, shake: 1 },
+  settings: defaultSettings(),
 });
 
 export class Save {
@@ -29,7 +30,7 @@ export class Save {
       if (raw) {
         const d = JSON.parse(raw);
         const def = DEFAULT();
-        this.data = { ...def, ...d, settings: { ...def.settings, ...(d.settings || {}) }, best: { ...def.best, ...(d.best || {}) } };
+        this.data = { ...def, ...d, settings: loadSettings(d.settings || {}), best: { ...def.best, ...(d.best || {}) } };
       }
     } catch (e) {
       console.warn('Save load failed', e);

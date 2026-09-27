@@ -237,6 +237,9 @@ export class TownScene extends Phaser.Scene {
     const n = App.net;
     if (!n || !n.lobby) return;
     const lines = [`ROOM CODE: ${n.lobby.code}`];
+    // Hosts on the desktop app: show the address friends should type.
+    const host = n.hosting && window.undercrankDesktop?.hostInfo();
+    if (host?.port) lines.push(`FRIENDS JOIN AT: ${(host.addresses[0] || 'localhost')}:${host.port}`);
     for (const pl of n.lobby.players) lines.push(`${pl.ready ? '[READY]' : '[WAIT] '} ${pl.name}${pl.id === n.playerId ? ' (YOU)' : ''}`);
     if (n.lobby.inGame) lines.push('RUN IN PROGRESS...');
     else lines.push('ALL READY AT THE GATE = DESCEND');

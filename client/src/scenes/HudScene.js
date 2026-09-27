@@ -34,6 +34,7 @@ export class HudScene extends Phaser.Scene {
     this.dmg = this.add.rectangle(240, 135, 480, 270, 0xff0000, 0).setDepth(20);
     this.banner = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + 118, '', { origin: [0.5, 0.5], scale: 2, color: COLORS.brass }).setDepth(30).setAlpha(0);
     this.subBanner = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + 136, '', { origin: [0.5, 0.5], color: COLORS.text, maxWidth: 300 }).setDepth(30).setAlpha(0);
+    this.fps = text(this, 476, 262, '', { origin: [1, 0], color: COLORS.dim }).setDepth(40);
     this.hint = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + ROOM_PX_H - 14, '', { origin: [0.5, 0], color: COLORS.dim }).setDepth(4);
     this.drawStatic();
   }
@@ -111,6 +112,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   damageFlash() {
+    if (App.save.data.settings.flashes === false) return;
     this.dmg.setFillStyle(0xff0000, 0.28);
     this.tweens.killTweensOf(this.dmg);
     this.dmg.setAlpha(1);
@@ -292,6 +294,7 @@ export class HudScene extends Phaser.Scene {
       return true;
     });
 
+    setText(this.fps, App.save.data.settings.showFps ? `${Math.round(this.game.loop.actualFps)} FPS` : '');
     // Contextual hint.
     const hintSlot = 0;
     if (view.depth === 1 && view.room.id === view.floor.startId) {

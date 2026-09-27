@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Server } from 'socket.io';
+import { PROTOCOL_VERSION, MAX_PLAYERS } from '@undercrank/shared';
 import { Room, makeCode } from './rooms.js';
 
 const MIME = {
@@ -27,7 +28,7 @@ export function startServer({ port, distDir = null, host = '0.0.0.0', deflate = 
   const server = http.createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
+      res.end(JSON.stringify({ ok: true, version: PROTOCOL_VERSION, rooms: rooms.size }));
       return;
     }
     if (!hasDist) {
@@ -51,8 +52,20 @@ export function startServer({ port, distDir = null, host = '0.0.0.0', deflate = 
     rooms.get(code)?.remove(socket.id);
   }
 
+  // Clients from a different build would render snapshots wrongly: refuse them clearly.
+  const versionError = (v) =>
+    v === PROTOCOL_VERSION ? null : `Version mismatch: this server runs game version ${PROTOCOL_VERSION}, you have ${v ?? 'an older build'}. Everyone needs the same release.`;
+
+  const openRooms = () => [...rooms.values()].filter((r) => !r.inGame && r.members.size < MAX_PLAYERS);
+
   io.on('connection', (socket) => {
+    socket.on('rooms', (_msg, ack) => {
+      ack?.({ version: PROTOCOL_VERSION, rooms: [...rooms.values()].map((r) => ({ code: r.code, players: r.members.size, inGame: r.inGame })) });
+    });
+
     socket.on('create', (profile, ack) => {
+      const vErr = versionError(profile?.version);
+      if (vErr) return ack?.({ error: vErr });
       leave(socket);
       const code = makeCode(rooms);
       const room = new Room(io, code, (c) => rooms.delete(c));
@@ -65,14 +78,24 @@ export function startServer({ port, distDir = null, host = '0.0.0.0', deflate = 
     });
 
     socket.on('join', (msg, ack) => {
+      const vErr = versionError(msg?.profile?.version);
+      if (vErr) return ack?.({ error: vErr });
       const code = String(msg?.code || '').toUpperCase().trim();
-      const room = rooms.get(code);
-      if (!room) return ack?.({ error: 'No room with that code' });
+      let room;
+      if (code) {
+        room = rooms.get(code);
+        if (!room) return ack?.({ error: `No room ${code} on this server. Room codes only exist on the machine that created them - enter the host's IP address to join their game.` });
+      } else {
+        // Joining by address alone: take the open room (the host's lobby).
+        const open = openRooms();
+        if (!open.length) return ack?.({ error: rooms.size ? 'The host is already mid-run. Wait for it to finish, then try again.' : 'Nobody is hosting on that server yet. Ask the host to choose HOST A GAME first.' });
+        room = open[0];
+      }
       leave(socket);
       const err = room.add(socket, msg?.profile);
       if (err) return ack?.({ error: err });
-      roomOf.set(socket.id, code);
-      ack?.({ code, playerId: room.members.get(socket.id).simId });
+      roomOf.set(socket.id, room.code);
+      ack?.({ code: room.code, playerId: room.members.get(socket.id).simId });
     });
 
     const withRoom = (fn) => (...args) => {

@@ -41,6 +41,7 @@ ipcMain.on('host:info', (e) => {
   e.returnValue = host;
 });
 ipcMain.on('win:fullscreen', () => win?.setFullScreen(!win.isFullScreen()));
+ipcMain.on('win:setFullscreen', (_e, on) => win?.setFullScreen(!!on));
 ipcMain.on('app:quit', () => app.quit());
 
 async function boot() {

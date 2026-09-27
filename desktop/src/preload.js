@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('undercrankDesktop', {
   writeSave: (json) => ipcRenderer.send('save:write', json),
   hostInfo: () => ipcRenderer.sendSync('host:info'),
   toggleFullscreen: () => ipcRenderer.send('win:fullscreen'),
+  setFullscreen: (on) => ipcRenderer.send('win:setFullscreen', !!on),
   quit: () => ipcRenderer.send('app:quit'),
 });

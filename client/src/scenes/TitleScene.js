@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { App, setupCamera, ART } from '../state.js';
 import { text, COLORS } from '../ui/text.js';
 import { Menu } from '../ui/Menu.js';
+import { setFullscreen } from '../fullscreen.js';
 
 // Title screen: whoever presses first becomes Player 1.
 export class TitleScene extends Phaser.Scene {
@@ -42,22 +43,21 @@ export class TitleScene extends Phaser.Scene {
     this.menu = new Menu(this, [
       { label: 'PLAY  (SOLO / COUCH CO-OP)', action: () => this.go('local') },
       { label: 'ONLINE CO-OP', action: () => this.go('online') },
-      { label: 'SFX VOLUME', value: () => `${Math.round(App.save.data.settings.sfx * 10)}`, left: () => this.vol('sfx', -0.1), right: () => this.vol('sfx', 0.1), action: () => this.vol('sfx', 0.1, true) },
-      { label: 'MUSIC VOLUME', value: () => `${Math.round(App.save.data.settings.music * 10)}`, left: () => this.vol('music', -0.1), right: () => this.vol('music', 0.1), action: () => this.vol('music', 0.1, true) },
-      { label: 'SCREEN SHAKE', value: () => `${Math.round(App.save.data.settings.shake * 100)}%`, left: () => this.vol('shake', -0.25), right: () => this.vol('shake', 0.25), action: () => this.vol('shake', 0.25, true) },
-      ...(window.undercrankDesktop
-        ? [
-            { label: 'TOGGLE FULLSCREEN  (F11)', action: () => window.undercrankDesktop.toggleFullscreen() },
-            { label: 'QUIT', action: () => window.undercrankDesktop.quit() },
-          ]
-        : []),
-    ], { y: window.undercrankDesktop ? 118 : 130, device: App.input.slots[0] });
+      { label: 'OPTIONS', action: () => this.openOptions() },
+      ...(window.undercrankDesktop ? [{ label: 'QUIT', action: () => window.undercrankDesktop.quit() }] : []),
+    ], { y: 130, device: App.input.slots[0] });
     this.help = text(this, 240, 216, '', { origin: [0.5, 0.5], color: COLORS.dim, maxWidth: 460 });
     this.help.setText(
       App.input.slots[0] === 'kbm'
         ? 'WASD MOVE - MOUSE/ARROWS AIM+SHOOT - SPACE DASH - Q ACTIVE - F CONSUMABLE - E INTERACT - C PING'
         : 'L-STICK MOVE - R-STICK AIM+SHOOT - A DASH - Y ACTIVE - LB CONSUMABLE - X INTERACT - UP PING',
     );
+  }
+
+  openOptions() {
+    this.scene.launch('Options', { from: 'Title' });
+    this.scene.bringToTop('Options');
+    this.scene.pause();
   }
 
   vol(key, d, wrap = false) {
@@ -83,6 +83,7 @@ export class TitleScene extends Phaser.Scene {
       const dev = App.input.anyPress();
       if (dev) {
         App.audio.unlock();
+        if (App.save.data.settings.fullscreen) setFullscreen(true);
         App.input.slots = [dev];
         this.started = true;
         this.openMenu();

@@ -106,6 +106,20 @@ less bandwidth, more CPU).
 
 Menus accept arrows, WASD, Enter/Space/E and Escape, or the d-pad/stick with A and B.
 
+Every keyboard and gamepad binding above is the default and can be changed in **Options → Controls**.
+
+### Options
+
+Open **Options** from the title screen or the pause menu (Tab / LB / RB switch tabs):
+
+- **Audio** — sound effects and music volume.
+- **Video** — fullscreen, **screen shake** (slider, all the way down turns it off), screen flashes,
+  hit-stop, damage numbers, FPS counter.
+- **Gameplay** — auto-fire for mouse players, and resetting progress (settings are kept).
+- **Controls** — rebind every keyboard action (up to two keys each) and gamepad button.
+
+Settings are saved with your progress.
+
 ---
 
 ## How to play
@@ -142,13 +156,18 @@ rejoins on the next floor. Difficulty scales with player count.
 
 ### Online co-op (up to 4)
 
-1. Choose **Online Co-op** on the title screen.
-2. Set your name. Leave **Server** empty to use the machine serving the page, or type
-   `host:port` (for example `192.168.1.20:3001`).
-3. One player picks **Create room** and shares the 4-letter code. The others use **Join room**
-   (type the code, or use the gamepad letter picker).
-4. Everyone lands in their own town (upgrades come from each player's own save). Interact with
+1. The host chooses **Online Co-op → Host a game on this machine**. The desktop app shows the
+   address friends should use (for example `192.168.1.20:3001`).
+2. Everyone else types that address into **Host address** and picks **Join game**. The room
+   code is optional: with no code you join whatever game is open on that server.
+3. Everyone lands in their own town (upgrades come from each player's own save). Interact with
    the gate to **ready up**; the run starts when everyone is ready.
+
+Room codes only exist on the server that created them. Every desktop copy runs its own server,
+so a code on its own only works if everyone is connected to the same server — that is why joining
+is done by the host's address. On a LAN, use the host's local IP. Over the internet, the host
+forwards **TCP port 3001** on their router (and allows it through the firewall) and friends use the
+host's public IP. The client and server check they are the same version and say so if they aren't.
 
 ---
 

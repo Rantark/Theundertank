@@ -36,11 +36,16 @@ export class PauseScene extends Phaser.Scene {
     this.menu = new Menu(this, [
       { label: 'RESUME', action: () => this.close() },
       { label: () => (this.confirmAbandon ? 'REALLY ABANDON? (COGS ARE KEPT)' : 'ABANDON RUN'), action: () => this.abandon() },
-      { label: 'SFX', value: () => `${Math.round(App.save.data.settings.sfx * 10)}`, left: () => this.vol('sfx', -0.1), right: () => this.vol('sfx', 0.1) },
-      { label: 'MUSIC', value: () => `${Math.round(App.save.data.settings.music * 10)}`, left: () => this.vol('music', -0.1), right: () => this.vol('music', 0.1) },
-    ], { x: 240, y: 214, spacing: 10, depth: 5 });
+      { label: 'OPTIONS', action: () => this.openOptions() },
+    ], { x: 240, y: 216, spacing: 11, depth: 5 });
     this.frame = this.add.graphics().setDepth(4);
     this.render();
+  }
+
+  openOptions() {
+    this.scene.launch('Options', { from: 'Pause' });
+    this.scene.bringToTop('Options');
+    this.scene.pause();
   }
 
   vol(k, d) {

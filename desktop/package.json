@@ -1,7 +1,7 @@
 {
   "name": "undercrank-desktop",
   "productName": "The Undercrank",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The Undercrank - steampunk roguelike twin-stick shooter (desktop build)",
   "author": "The Undercrank",
   "private": true,

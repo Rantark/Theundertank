@@ -43,6 +43,8 @@ export const SNAPSHOT_HZ = 15;
 export const INTERP_DELAY_MS = 120;
 
 export const DEFAULT_PORT = 3001;
+// Bumped whenever the network snapshot/sim contract changes; mismatched builds can't join.
+export const PROTOCOL_VERSION = 3;
 
 // Palette (steampunk): brass, copper, verdigris, soot, gaslight.
 export const PAL = {

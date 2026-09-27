@@ -2,7 +2,7 @@
 // Connects to the authoritative server, tracks the lobby, and exposes a NetSession
 // with the same interface as LocalSession so GameScene can't tell the difference.
 import { io } from 'socket.io-client';
-import { generateFloor, decodeSnapshot, INTERP_DELAY_MS, TILE, emptyInput } from '@undercrank/shared';
+import { generateFloor, decodeSnapshot, INTERP_DELAY_MS, TILE, emptyInput, PROTOCOL_VERSION } from '@undercrank/shared';
 import { moveCircleForPrediction } from './predict.js';
 import { App } from '../state.js';
 
@@ -41,15 +41,16 @@ export class NetClient {
 
   profile() {
     const d = App.save.data;
-    return { name: d.name, character: d.unlocked.includes(d.characters[0]) ? d.characters[0] : 'tinker', upgrades: d.upgrades };
+    return { name: d.name, character: d.unlocked.includes(d.characters[0]) ? d.characters[0] : 'tinker', upgrades: d.upgrades, version: PROTOCOL_VERSION };
   }
 
   create() {
     return new Promise((resolve) => this.socket.emit('create', this.profile(), resolve));
   }
 
+  /** Join a room by code, or (code empty) whichever lobby is open on this server. */
   join(code) {
-    return new Promise((resolve) => this.socket.emit('join', { code, profile: this.profile() }, resolve));
+    return new Promise((resolve) => this.socket.emit('join', { code: code || '', profile: this.profile() }, resolve));
   }
 
   sendProfile() {

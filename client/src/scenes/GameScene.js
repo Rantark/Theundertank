@@ -56,7 +56,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   openPause() {
-    if (this.scene.isActive('Pause')) return;
+    if (this.scene.isActive('Pause') || this.scene.isPaused('Pause')) return;
     if (!this.session.online) this.session.paused = true;
     this.scene.launch('Pause', { gameScene: this });
     this.scene.bringToTop('Pause');
@@ -68,7 +68,8 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     const inp = App.input;
-    const pausedOverlay = this.scene.isActive('Pause');
+    // Pause (or Options opened from it) owns input while open, even when itself paused.
+    const pausedOverlay = ['Pause', 'Options'].some((k) => this.scene.isActive(k) || this.scene.isPaused(k));
     if (!pausedOverlay) inp.poll(this.input.activePointer);
     const view = this.session.view;
     const dt = delta / 1000;
@@ -154,7 +155,7 @@ export class GameScene extends Phaser.Scene {
         this.fx.shake(e.a);
         break;
       case 'hitstop':
-        this.session.freeze(e.ms);
+        if (App.save.data.settings.hitstop !== false) this.session.freeze(e.ms);
         break;
       case 'fx':
         this.fx.event(e);
