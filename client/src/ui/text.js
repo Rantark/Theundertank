@@ -18,7 +18,8 @@ export const COLORS = {
  * Create bitmap text. Options: color, scale, origin [x,y], shadow (bool), maxWidth, depth.
  */
 export function text(scene, x, y, str, o = {}) {
-  const t = scene.add.bitmapText(x, y, 'px', String(str).toUpperCase(), 9 * (o.scale || 1));
+  // RetroFont's base size is the glyph width (6px), so size 6 renders at 1:1.
+  const t = scene.add.bitmapText(x, y, 'px', String(str).toUpperCase(), 6 * (o.scale || 1));
   t.setTint(o.color ?? COLORS.text);
   if (o.origin) t.setOrigin(o.origin[0], o.origin[1]);
   if (o.maxWidth) t.setMaxWidth(o.maxWidth);

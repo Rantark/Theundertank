@@ -31,8 +31,8 @@ export class HudScene extends Phaser.Scene {
     this.buildIcons = [];
     this.bossName = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + ROOM_PX_H - 16, '', { origin: [0.5, 1], color: COLORS.red }).setDepth(5);
     this.dmg = this.add.rectangle(240, 135, 480, 270, 0xff0000, 0).setDepth(20);
-    this.banner = text(this, 240, 120, '', { origin: [0.5, 0.5], scale: 2, color: COLORS.brass }).setDepth(30).setAlpha(0);
-    this.subBanner = text(this, 240, 140, '', { origin: [0.5, 0.5], color: COLORS.text, maxWidth: 300 }).setDepth(30).setAlpha(0);
+    this.banner = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + 118, '', { origin: [0.5, 0.5], scale: 2, color: COLORS.brass }).setDepth(30).setAlpha(0);
+    this.subBanner = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + 136, '', { origin: [0.5, 0.5], color: COLORS.text, maxWidth: 300 }).setDepth(30).setAlpha(0);
     this.hint = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + ROOM_PX_H - 14, '', { origin: [0.5, 0], color: COLORS.dim }).setDepth(4);
     this.drawStatic();
   }
