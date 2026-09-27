@@ -27,7 +27,7 @@ export class HudScene extends Phaser.Scene {
     this.toasts = [];
     this.floorLabel = text(this, 28, ROOM_Y + 4, 'FLOOR', { origin: [0.5, 0], color: COLORS.dim });
     this.floorNum = text(this, 28, ROOM_Y + 14, '1', { origin: [0.5, 0], scale: 2, color: COLORS.brass });
-    this.modText = text(this, 3, ROOM_Y + 36, '', { color: COLORS.copper, maxWidth: 52 });
+    this.modText = text(this, 28, ROOM_Y + 40, '', { origin: [0.5, 0], color: COLORS.copper });
     this.buildIcons = [];
     this.bossName = text(this, ROOM_X + ROOM_PX_W / 2, ROOM_Y + ROOM_PX_H - 16, '', { origin: [0.5, 1], color: COLORS.red }).setDepth(5);
     this.dmg = this.add.rectangle(240, 135, 480, 270, 0xff0000, 0).setDepth(20);
@@ -250,7 +250,7 @@ export class HudScene extends Phaser.Scene {
     this.drawPanels(view);
     this.drawMinimap(view);
     setText(this.floorNum, `${view.depth}`);
-    setText(this.modText, (view.floor.modifiers || []).map((m) => MODIFIER_MAP[m]?.name).join('\n\n'));
+    setText(this.modText, (view.floor.modifiers || []).map((m) => MODIFIER_MAP[m]?.short).join('\n'));
 
     // Build list for the first local player (right column).
     const me = view.players.find((p) => p.id === this.gs.localIds[0]);

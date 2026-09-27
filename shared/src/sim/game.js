@@ -452,7 +452,7 @@ export class Game {
     const speedMult = this.scale.proj * (this.hasModifier('overclocked') ? 1.15 : 1);
     return spawnProjectile(this, {
       team: 'enemy', owner: 0, x, y, ang, speed: (o.speed || 90) * speedMult, r: o.r || 3,
-      damage: o.dmg || this.enemyDmg(), kind: o.kind || 'orb', life: o.life || 5, range: 9999, beh,
+      damage: o.dmg || this.enemyDmg(), kind: o.kind || 'bullet', life: o.life || 5, range: 9999, beh,
     });
   }
 

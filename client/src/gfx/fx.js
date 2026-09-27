@@ -126,7 +126,7 @@ export class Fx {
         this.fire.explode(Math.min(30, 8 + r / 2), x, y);
         this.smoke.explode(6, x, y);
         this.sparks.explode(8, x, y);
-        this.flash(x, y, 'flash', { scale: r / 5, tint: 0xffd08a, dur: 140 });
+        this.flash(x, y, 'glow', { scale: r / 22, tint: 0xffd08a, dur: 160 });
         this.ring(x, y, r, 0xffc93c, 250);
         break;
       }

@@ -347,11 +347,11 @@ export function generateSprites(scene) {
   const eshot = (key, size, ring, core) => {
     const q = new Pix(size, size);
     const c = size / 2;
-    q.disc(c, c, c - 1, ring).disc(c, c, c - 2.3, core).px(c - 1.5, c - 1.5, 0xffffff);
+    q.disc(c, c, c - 1, ring).disc(c, c, Math.max(1.2, (c - 1) * 0.5), core).px(Math.floor(c - 1), Math.floor(c - 1), 0xffffff);
     q.outline(0x1a0008);
     q.toTexture(scene, key);
   };
-  eshot('eshot', 9, PAL.enemyShot, PAL.enemyShotCore);
+  eshot('eshot', 8, PAL.enemyShot, PAL.enemyShotCore);
   eshot('eshot_big', 14, PAL.enemyShot, PAL.enemyShotCore);
   eshot('eshot_fire', 9, 0xe8203a, 0xffb347);
   eshot('eshot_orb', 11, 0xb03fd9, 0xf0c8ff);

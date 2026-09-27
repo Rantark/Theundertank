@@ -15,7 +15,7 @@ export const BASE_STATS = {
   dashCooldown: 1.1, // seconds per charge
   dashSpeed: 340,
   dashTime: 0.14,
-  knockback: 70,
+  knockback: 110,
   luck: 0,
   pierce: 0,
   bounce: 0,

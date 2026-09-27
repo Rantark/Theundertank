@@ -145,7 +145,7 @@ export class GameScene extends Phaser.Scene {
         this.fx.debris.explode(6 * big, e.x, e.y);
         this.fx.steam.explode(4 * big, e.x, e.y);
         this.fx.sparks.explode(6 * big, e.x, e.y);
-        this.fx.flash(e.x, e.y, 'flash', { scale: 1.2 * big, tint: 0xffd08a, dur: 100 });
+        this.fx.flash(e.x, e.y, 'glow', { scale: 0.35 * big, tint: 0xffd08a, dur: 120 });
         App.audio.play('kill');
         break;
       }
