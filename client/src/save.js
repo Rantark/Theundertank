@@ -23,7 +23,9 @@ export class Save {
 
   load() {
     try {
-      const raw = localStorage.getItem(KEY);
+      // The desktop app stores saves in a file in the OS app-data folder.
+      const desk = window.undercrankDesktop;
+      const raw = desk ? desk.loadSave() : localStorage.getItem(KEY);
       if (raw) {
         const d = JSON.parse(raw);
         const def = DEFAULT();
@@ -36,7 +38,9 @@ export class Save {
 
   persist() {
     try {
-      localStorage.setItem(KEY, JSON.stringify(this.data));
+      const json = JSON.stringify(this.data);
+      if (window.undercrankDesktop) window.undercrankDesktop.writeSave(json);
+      else localStorage.setItem(KEY, json);
     } catch (e) {
       console.warn('Save failed', e);
     }

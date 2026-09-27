@@ -44,7 +44,13 @@ export class TitleScene extends Phaser.Scene {
       { label: 'SFX VOLUME', value: () => `${Math.round(App.save.data.settings.sfx * 10)}`, left: () => this.vol('sfx', -0.1), right: () => this.vol('sfx', 0.1), action: () => this.vol('sfx', 0.1, true) },
       { label: 'MUSIC VOLUME', value: () => `${Math.round(App.save.data.settings.music * 10)}`, left: () => this.vol('music', -0.1), right: () => this.vol('music', 0.1), action: () => this.vol('music', 0.1, true) },
       { label: 'SCREEN SHAKE', value: () => `${Math.round(App.save.data.settings.shake * 100)}%`, left: () => this.vol('shake', -0.25), right: () => this.vol('shake', 0.25), action: () => this.vol('shake', 0.25, true) },
-    ], { y: 130, device: App.input.slots[0] });
+      ...(window.undercrankDesktop
+        ? [
+            { label: 'TOGGLE FULLSCREEN  (F11)', action: () => window.undercrankDesktop.toggleFullscreen() },
+            { label: 'QUIT', action: () => window.undercrankDesktop.quit() },
+          ]
+        : []),
+    ], { y: window.undercrankDesktop ? 118 : 130, device: App.input.slots[0] });
     this.help = text(this, 240, 216, '', { origin: [0.5, 0.5], color: COLORS.dim, maxWidth: 460 });
     this.help.setText(
       App.input.slots[0] === 'kbm'

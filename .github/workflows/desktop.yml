@@ -1,0 +1,58 @@
+# Builds the standalone desktop executables on native runners.
+#  - Push a tag like v0.1.0 to build all platforms and attach them to a GitHub Release.
+#  - Or run it manually from the Actions tab ("Run workflow") and download the artifacts.
+name: Desktop builds
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['claude/roguelike-twin-stick-shooter-2hbnhx']
+    paths: ['desktop/**', 'client/**', 'server/**', 'shared/**', '.github/workflows/desktop.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install game dependencies
+        run: npm ci
+      - name: Test the simulation
+        run: npm test
+      - name: Install desktop tooling
+        working-directory: desktop
+        run: npm ci
+      - name: Build executable
+        working-directory: desktop
+        run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: undercrank-${{ runner.os }}
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.dmg
+            desktop/release/*.AppImage
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

@@ -29,6 +29,12 @@ export class OnlineScene extends Phaser.Scene {
     this.texts = this.items.map((_, i) => text(this, 110, 90 + i * 16, '', { color: COLORS.text }));
     this.status = text(this, 240, 186, '', { origin: [0.5, 0], color: COLORS.dim, maxWidth: 280 });
     this.help = text(this, 240, 210, 'TYPE TO EDIT FIELDS. ROOM CODES ARE 4 LETTERS.', { origin: [0.5, 0], color: COLORS.dim });
+    // Desktop build: this machine is a server too, so tell the player what friends type in.
+    const host = window.undercrankDesktop?.hostInfo();
+    if (host && host.port) {
+      const addr = host.addresses.length ? host.addresses.map((a) => `${a}:${host.port}`).join('  ') : `localhost:${host.port}`;
+      text(this, 240, 222, `FRIENDS JOIN YOUR ROOMS AT: ${addr}`, { origin: [0.5, 0], color: COLORS.verdigris, maxWidth: 300 });
+    }
     this.editing = null;
     this.picker = false;
     this.pickPos = 0;

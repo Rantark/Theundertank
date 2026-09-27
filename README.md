@@ -41,6 +41,38 @@ npm run dev:client   # client only
 npm run dev:server   # server only (auto-restarts on change)
 ```
 
+### Desktop executables (no install needed for players)
+
+The game ships as a standalone app built with Electron: **`TheUndercrank-<version>-Windows.exe`**
+(portable, just double-click), a macOS **`.dmg`**, and a Linux **`.AppImage`**. Players don't need
+Node or a browser. Each copy also runs the online server internally, so **whoever launches the game
+can host online co-op**: the Online Co-op menu shows the address friends should type
+(for example `192.168.1.20:3001`; for play over the internet, forward TCP port 3001 on the host's router).
+Saves are stored in the OS app-data folder. Press **F11** (or Alt+Enter) for fullscreen.
+
+**Getting the builds:** push a version tag and GitHub Actions builds all three on native runners
+and attaches them to a GitHub Release:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+You can also run the *Desktop builds* workflow manually from the Actions tab and download the
+artifacts. To build locally (for your current OS):
+
+```bash
+npm run desktop        # run the desktop app from source
+npm run desktop:dist   # produce an executable in desktop/release/
+```
+
+From Linux you can also cross-build the Windows exe with `npm --prefix desktop run dist:win-from-linux`
+(the exe gets Electron's default icon; the CI build has the proper one). macOS builds must be made
+on a Mac, which the workflow handles.
+
+The builds are unsigned, so the first launch shows a warning: on Windows click **More info → Run anyway**.
+On macOS right-click the app and choose **Open**; if it says the app "is damaged", run
+`xattr -cr "/Applications/The Undercrank.app"` once.
+
 ### Hosting on a Raspberry Pi (or any single machine)
 
 ```bash
@@ -139,7 +171,8 @@ rejoins on the next floor. Difficulty scales with player count.
   src/net/         LocalSession (in-browser sim), NetClient/NetSession (online), prediction
   src/input/       keyboard/mouse + Gamepad API, device-to-player slots
   src/audio/       Web Audio synthesiser and procedural music
-/server   Node + Socket.IO authoritative host
+/server   Node + Socket.IO authoritative host (app.js is embeddable; index.js is the CLI)
+/desktop  Electron shell: embeds the server, opens the game window, file-based saves
 ```
 
 **One simulation, two hosts.** `Game` in `/shared` is the only gameplay code. Solo and couch

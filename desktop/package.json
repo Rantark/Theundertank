@@ -1,0 +1,71 @@
+{
+  "name": "undercrank-desktop",
+  "productName": "The Undercrank",
+  "version": "0.1.0",
+  "description": "The Undercrank - steampunk roguelike twin-stick shooter (desktop build)",
+  "author": "The Undercrank",
+  "private": true,
+  "main": "build/main.cjs",
+  "scripts": {
+    "icon": "node scripts/make-icon.mjs",
+    "bundle": "node scripts/build.mjs",
+    "start": "npm run bundle && electron .",
+    "dist": "npm run bundle && electron-builder",
+    "dist:win": "npm run bundle && electron-builder --win",
+    "dist:mac": "npm run bundle && electron-builder --mac",
+    "dist:linux": "npm run bundle && electron-builder --linux",
+    "dist:win-from-linux": "npm run bundle && electron-builder --win -c.win.signAndEditExecutable=false"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.25.0"
+  },
+  "build": {
+    "appId": "com.undercrank.game",
+    "productName": "The Undercrank",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "build/**",
+      "app/**",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "resources/icon.png"
+    },
+    "portable": {
+      "artifactName": "TheUndercrank-${version}-Windows.exe"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "category": "public.app-category.games",
+      "identity": null,
+      "artifactName": "TheUndercrank-${version}-macOS-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "resources/icon.png",
+      "category": "Game",
+      "artifactName": "TheUndercrank-${version}-Linux.${ext}"
+    },
+    "publish": null
+  }
+}
