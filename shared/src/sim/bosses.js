@@ -77,7 +77,23 @@ function lob(g, b, tx, ty, onLand, extra = {}) {
     beh: { lob: { tx, ty, time: extra.time || 0.9, height: 50, onLand, ...extra } },
   });
 }
+/** Shorten a ray so it ends at the room's inner walls. */
+function clipLen(x, y, ang, len) {
+  const minX = TILE;
+  const minY = TILE;
+  const maxX = ROOM_W * TILE - TILE;
+  const maxY = ROOM_H * TILE - TILE;
+  const dx = Math.cos(ang);
+  const dy = Math.sin(ang);
+  let t = len;
+  if (dx > 1e-6) t = Math.min(t, (maxX - x) / dx);
+  if (dx < -1e-6) t = Math.min(t, (minX - x) / dx);
+  if (dy > 1e-6) t = Math.min(t, (maxY - y) / dy);
+  if (dy < -1e-6) t = Math.min(t, (minY - y) / dy);
+  return Math.max(0, t);
+}
 function beam(g, x, y, ang, len, o = {}) {
+  len = clipLen(x, y, ang, len);
   g.spawnZone({ type: 'beam', team: 'enemy', x, y, x2: x + Math.cos(ang) * len, y2: y + Math.sin(ang) * len, width: o.width || 10, warn: o.warn || 0.85, active: o.active || 0.45, damage: g.enemyDmg(), life: 5 });
 }
 function leapUpdate(g, b, dt, ps) {

@@ -296,7 +296,8 @@ export class WorldRenderer {
       if (e.fading) alpha = 0.25;
       if (e.boss && e.untargetable) alpha = 0.6 + Math.sin(this.time * 20) * 0.3;
       o.spr.setAlpha(alpha).setScale(scale);
-      if (e.flash > 0) o.spr.setTintFill(0xffffff);
+      if (e.flash > 0 && e.boss) o.spr.setTint(0xff8a8a);
+      else if (e.flash > 0) o.spr.setTintFill(0xffffff);
       else if (fused(e)) o.spr.setTint(Math.floor(this.time * 16) % 2 ? 0xff5040 : 0xffffff);
       else if (burning(e)) o.spr.setTint(Math.floor(this.time * 10) % 2 ? 0xffa060 : 0xffd0a0);
       else if (slowed(e)) o.spr.setTint(0x9fc8ff);

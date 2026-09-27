@@ -75,3 +75,33 @@ test('simulation runs with bots, every item, across floors and boss rooms withou
     assert.ok(g.depth >= 5, 'reached boss floor');
   }
 });
+
+test('every boss pattern runs to completion at deep tiers', async () => {
+  const { BOSSES } = await import('../src/data/bosses.js');
+  const { PATTERNS } = await import('../src/sim/bosses.js');
+  for (const def of BOSSES) {
+    for (const pat of def.patterns) {
+      const g = new Game({ seed: `BOSS-${def.id}-${pat.id}`, players: [{ id: 1, slot: 0 }, { id: 2, slot: 1 }] });
+      g.startFloor(25);
+      g.floor.bossId = def.id;
+      const room = [...g.floor.rooms.values()].find((r) => r.type === 'boss');
+      g.enterRoom(room.id, 's');
+      const b = g.boss;
+      assert.ok(b, 'boss spawned');
+      b.bs.mode = 'pattern';
+      b.bs.phase = 2;
+      b.untargetable = false;
+      b.bs.pattern = PATTERNS[pat.id];
+      b.bs.ps = {};
+      b.bs.pattern.start(b, g, b.bs.ps);
+      let done = false;
+      for (let i = 0; i < 30 * 12 && !done; i++) {
+        for (const p of g.players) p.hp = 99;
+        g.step(1 / 30, {});
+        done = b.bs.mode !== 'pattern';
+        g.drainEvents();
+      }
+      assert.ok(done, `${def.id}.${pat.id} finished`);
+    }
+  }
+});
