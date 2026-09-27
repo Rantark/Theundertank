@@ -1,21 +1,23 @@
 # Builds the standalone desktop executables on native runners.
 #  - Push a tag like v0.1.0 to build all platforms and attach them to a GitHub Release.
-#  - Or run it manually from the Actions tab ("Run workflow"). Leave "release_tag" empty to
-#    just build downloadable artifacts, or enter e.g. v0.1.0 to also publish a Release
-#    (GitHub creates the tag on the commit that was built).
+#  - Or run it manually from the Actions tab ("Run workflow"). By default this publishes a
+#    Release tagged with the desktop app's version (GitHub creates the tag on the commit
+#    that was built). Untick "publish" to only build downloadable artifacts.
 name: Desktop builds
 
 on:
   workflow_dispatch:
     inputs:
+      publish:
+        description: 'Publish a GitHub Release with the builds'
+        type: boolean
+        default: true
       release_tag:
-        description: 'Publish a GitHub Release with this tag (e.g. v0.1.0). Leave empty to only build.'
+        description: 'Release tag (leave empty to use the version in desktop/package.json, e.g. v0.1.0)'
         required: false
         default: ''
   push:
     tags: ['v*']
-    branches: ['claude/roguelike-twin-stick-shooter-2hbnhx']
-    paths: ['desktop/**', 'client/**', 'server/**', 'shared/**', '.github/workflows/desktop.yml']
 
 permissions:
   contents: write
@@ -52,18 +54,28 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Work out the release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then TAG="$GITHUB_REF_NAME";
+          elif [[ -n "${{ inputs.release_tag }}" ]]; then TAG="${{ inputs.release_tag }}";
+          else TAG="v$(node -p "require('./desktop/package.json').version")"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Publishing release $TAG"
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag || github.ref_name }}
-          name: The Undercrank ${{ inputs.release_tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: The Undercrank ${{ steps.tag.outputs.tag }}
           target_commitish: ${{ github.sha }}
           files: dist/*
           body: |
