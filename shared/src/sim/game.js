@@ -26,11 +26,11 @@ export function floorScale(depth) {
   const d = depth - 1;
   return {
     hp: 1 + 0.17 * d + 0.004 * d * d,
-    dmg: 1 + Math.floor(d / 7),
-    proj: Math.min(1.8, 1 + 0.035 * d),
+    dmg: 1 + Math.floor(d / 10),
+    proj: Math.min(1.7, 1 + 0.03 * d),
     speed: Math.min(1.6, 1 + 0.02 * d),
-    rate: Math.min(1.8, 1 + 0.03 * d),
-    elite: Math.min(0.45, 0.03 * d),
+    rate: Math.min(1.7, 1 + 0.025 * d),
+    elite: Math.min(0.4, 0.025 * d),
   };
 }
 
@@ -282,7 +282,7 @@ export class Game {
     switch (room.type) {
       case 'combat':
       case 'exit': {
-        const count = Math.min(15, 3 + Math.floor(this.depth * 0.6) + this.rng.int(0, 2) + (this.players.length - 1) + (room.type === 'exit' ? 1 : 0));
+        const count = Math.min(14, 3 + Math.floor(this.depth * 0.45) + this.rng.int(0, 2) + (this.players.length - 1) + (room.type === 'exit' ? 1 : 0));
         this.spawnWave(room, count);
         break;
       }
@@ -404,8 +404,8 @@ export class Game {
       const r = this.rng.next();
       const heartLuck = Math.max(...this.players.map((p) => p.upgrades.heart_luck || 0));
       if (r < 0.25) dropCogs(this, cx, cy, this.rng.int(2, 4));
-      else if (r < 0.37 + heartLuck * 0.04) spawnPickup(this, { type: 'heart', value: 1, x: cx, y: cy });
-      else if (r < 0.43 + heartLuck * 0.04) spawnPickup(this, { type: 'consumable', consId: rollConsumable(this), x: cx, y: cy });
+      else if (r < 0.40 + heartLuck * 0.04) spawnPickup(this, { type: 'heart', value: 1, x: cx, y: cy });
+      else if (r < 0.46 + heartLuck * 0.04) spawnPickup(this, { type: 'consumable', consId: rollConsumable(this), x: cx, y: cy });
     }
     if (room.type === 'exit') {
       room.hatch = true;

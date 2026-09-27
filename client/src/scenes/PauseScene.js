@@ -19,6 +19,7 @@ export class PauseScene extends Phaser.Scene {
     const g = this.add.graphics();
     panel(g, 10, 8, 460, 254);
     this.title = text(this, 240, 16, 'PAUSED', { origin: [0.5, 0], scale: 2, color: COLORS.brass });
+    if (this.gs.session.online) text(this, 240, 27, '', { origin: [0.5, 0], color: COLORS.red }).setText('ONLINE: THE GEARS KEEP TURNING').setY(4);
     this.tab = 0;
     this.dyn = [];
     this.confirmAbandon = false;

@@ -105,3 +105,51 @@ test('every boss pattern runs to completion at deep tiers', async () => {
     }
   }
 });
+
+test('every active item and consumable can be used', async () => {
+  const { ITEMS, CONSUMABLES } = await import('../src/data/items.js');
+  const { createEnemy } = await import('../src/sim/enemies.js');
+  const g = new Game({ seed: 'ACTIVES', players: [{ id: 1, slot: 0 }, { id: 2, slot: 1 }] });
+  const room = [...g.floor.rooms.values()].find((r) => r.type === 'combat');
+  g.enterRoom(room.id, 's');
+  const p = g.players[0];
+  let seq = 0;
+  const press = (key) => {
+    seq++;
+    const inp = emptyInput();
+    inp[key] = seq;
+    inp.ax = 1;
+    return inp;
+  };
+  for (const it of ITEMS.filter((i) => i.kind === 'active')) {
+    for (let k = 0; k < 3; k++) createEnemy(g, 'cogling', 80 + k * 40, 60, { instant: true });
+    p.active = { id: it.id, charge: 999 };
+    g.step(1 / 60, { 1: press('active') });
+    assert.equal(p.active.charge < 0.1, true, `${it.id} consumed its charge`);
+    for (let i = 0; i < 90; i++) {
+      p.hp = 6;
+      g.step(1 / 60, { 1: emptyInput() });
+    }
+  }
+  for (const c of CONSUMABLES) {
+    p.consumable = c.id;
+    g.step(1 / 60, { 1: press('cons') });
+    for (let i = 0; i < 60; i++) g.step(1 / 60, {});
+    assert.equal(p.consumable, null, `${c.id} consumed`);
+  }
+  g.drainEvents();
+});
+
+test('co-op: downed players are revived by a nearby teammate', () => {
+  const g = new Game({ seed: 'REVIVE', players: [{ id: 1, slot: 0 }, { id: 2, slot: 1 }] });
+  const [a, b] = g.players;
+  a.iframes = 0;
+  a.hp = 1;
+  g.hurtPlayer(a, 2, a.x, a.y - 4);
+  assert.equal(a.downed, true);
+  b.x = a.x + 6;
+  b.y = a.y;
+  for (let i = 0; i < 120; i++) g.step(1 / 60, {});
+  assert.equal(a.downed, false);
+  assert.equal(a.alive, true);
+});

@@ -6,7 +6,7 @@
 export const BOSSES = [
   {
     id: 'steam_golem', name: 'The Steam Golem', title: 'Furnace of the Deep Works',
-    hp: 750, r: 13, speed: 32, move: 'chase', idle: [1.1, 1.6], contact: 2,
+    hp: 600, r: 13, speed: 32, move: 'chase', idle: [1.1, 1.6], contact: 2,
     patterns: [
       { id: 'stomp', weight: 3 },
       { id: 'boulder', weight: 2 },
@@ -18,7 +18,7 @@ export const BOSSES = [
   },
   {
     id: 'clocktower', name: 'The Clocktower Automaton', title: 'Keeper of the Hour',
-    hp: 700, r: 13, speed: 24, move: 'center', idle: [0.9, 1.4], contact: 2,
+    hp: 560, r: 13, speed: 24, move: 'center', idle: [0.9, 1.4], contact: 2,
     patterns: [
       { id: 'clock_hands', weight: 3 },
       { id: 'chime_rings', weight: 3 },
@@ -30,7 +30,7 @@ export const BOSSES = [
   },
   {
     id: 'boiler_beast', name: 'The Boiler-Hearted Beast', title: 'It Hungers for Coal',
-    hp: 650, r: 12, speed: 55, move: 'prowl', idle: [0.8, 1.3], contact: 2,
+    hp: 520, r: 12, speed: 55, move: 'prowl', idle: [0.8, 1.3], contact: 2,
     patterns: [
       { id: 'pounce', weight: 3 },
       { id: 'fire_spiral', weight: 2 },
@@ -42,7 +42,7 @@ export const BOSSES = [
   },
   {
     id: 'tesla_matriarch', name: 'The Tesla Matriarch', title: 'Mother of Lightning',
-    hp: 680, r: 12, speed: 40, move: 'float', idle: [1.0, 1.5], contact: 2,
+    hp: 540, r: 12, speed: 40, move: 'float', idle: [1.0, 1.5], contact: 2,
     patterns: [
       { id: 'bolts', weight: 3 },
       { id: 'orbs', weight: 2 },
